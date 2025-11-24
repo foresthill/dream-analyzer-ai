@@ -1,1 +1,80 @@
-# dream-analyzer-ai
+# Dream Analyzer - AI夢診断アプリ
+
+夢の内容を記録・分析し、心理学的・象徴的な解釈を提供するアプリケーション。
+
+## 技術スタック
+
+### Web版
+- **Framework**: Next.js 15 (App Router)
+- **React**: 19
+- **TypeScript**: 5.7
+- **Styling**: Tailwind CSS v4
+- **AI**: Claude API (Anthropic)
+- **State**: Zustand
+- **Database**: Vercel Postgres
+- **ORM**: Prisma 6.0
+- **Monorepo**: Turborepo
+
+## 始め方
+
+### 前提条件
+- Node.js 20+
+- pnpm 9+
+- PostgreSQL
+
+### インストール
+
+```bash
+# 依存関係のインストール
+pnpm install
+
+# Prismaクライアントの生成
+pnpm --filter @dream-analyzer/web db:generate
+
+# データベースのセットアップ
+pnpm --filter @dream-analyzer/web db:push
+```
+
+### 環境変数
+
+`apps/web/.env.local` を作成:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/dream_analyzer"
+ANTHROPIC_API_KEY="sk-ant-..."
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret"
+```
+
+### 開発サーバーの起動
+
+```bash
+pnpm dev
+```
+
+http://localhost:3000 でアプリが起動します。
+
+## プロジェクト構造
+
+```
+dream-analyzer/
+├── apps/
+│   ├── web/            # Next.js Web アプリ
+│   └── mobile/         # Expo モバイルアプリ（将来）
+├── packages/
+│   ├── dream-core/     # 共通ビジネスロジック・AI分析
+│   ├── shared-types/   # 共有型定義
+│   └── ui-components/  # 共有UIコンポーネント
+└── docs/               # ドキュメント
+```
+
+## 主な機能
+
+- 🌙 夢の記録（タイトル、内容、気分、明晰度など）
+- 🔍 AI による心理学的・象徴的分析
+- 📊 傾向分析とインサイト
+- 📖 夢のシンボル辞典
+
+## ライセンス
+
+MIT
