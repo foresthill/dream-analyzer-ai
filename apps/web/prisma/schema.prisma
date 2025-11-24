@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+
+  dreams    Dream[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Dream {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String
+  content String @db.Text
+  date    DateTime
+
+  // 夢の属性
+  mood               DreamMood
+  lucidity           Int       @default(5)
+  vividness          Int       @default(5)
+  emotionalIntensity Int       @default(5)
+
+  // 環境・状況
+  setting    String?
+  characters String[]
+  emotions   String[]
+  colors     String[]
+
+  // メタデータ
+  sleepQuality Int?
+  bedTime      DateTime?
+  wakeTime     DateTime?
+  tags         String[]
+
+  // 分析
+  analyzed  Boolean        @default(false)
+  analysis  DreamAnalysis?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([date])
+}
+
+enum DreamMood {
+  JOYFUL
+  PEACEFUL
+  ANXIOUS
+  FEARFUL
+  SAD
+  ANGRY
+  CONFUSED
+  EXCITED
+  NEUTRAL
+}
+
+model DreamAnalysis {
+  id      String @id @default(cuid())
+  dreamId String @unique
+  dream   Dream  @relation(fields: [dreamId], references: [id], onDelete: Cascade)
+
+  psychologicalInterpretation String @db.Text
+
+  symbols              Json   // DreamSymbol[]
+  themes               String[]
+  emotionalAnalysis    Json
+  underlyingMeanings   String[]
+  insights             String[]
+
+  relatedDreams String[]
+
+  analyzedAt DateTime @default(now())
+
+  @@index([dreamId])
+}
