@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@dream-analyzer/shared-types": "workspace:*"
+    "@dream-analyzer/shared-types": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

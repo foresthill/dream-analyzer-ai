@@ -8,7 +8,7 @@
 - **Framework**: Next.js 15 (App Router)
 - **React**: 19
 - **TypeScript**: 5.7
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS v3
 - **AI**: Claude API (Anthropic)
 - **State**: Zustand
 - **Database**: Vercel Postgres
@@ -19,20 +19,20 @@
 
 ### 前提条件
 - Node.js 20+
-- pnpm 9+
+- npm 10+
 - PostgreSQL
 
 ### インストール
 
 ```bash
 # 依存関係のインストール
-pnpm install
+npm install
 
-# Prismaクライアントの生成
-pnpm --filter @dream-analyzer/web db:generate
+# Prismaクライアントの生成（postinstallで自動実行されます）
+npm run db:generate --workspace=@dream-analyzer/web
 
 # データベースのセットアップ
-pnpm --filter @dream-analyzer/web db:push
+npm run db:push --workspace=@dream-analyzer/web
 ```
 
 ### 環境変数
@@ -49,7 +49,7 @@ NEXTAUTH_SECRET="your-secret"
 ### 開発サーバーの起動
 
 ```bash
-pnpm dev
+npm run dev
 ```
 
 http://localhost:3000 でアプリが起動します。

@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm turbo build --filter=@dream-analyzer/web",
-  "framework": null,
-  "installCommand": "npm install -g pnpm@8.15.0 && pnpm install"
+  "buildCommand": "npm run build --workspace=@dream-analyzer/web",
+  "framework": null
 }
