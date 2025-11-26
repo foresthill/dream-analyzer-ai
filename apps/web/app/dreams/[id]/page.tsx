@@ -3,6 +3,8 @@ import { DreamDetail } from '@/components/dreams/dream-detail';
 import { AnalysisResult } from '@/components/analysis/analysis-result';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 interface DreamPageProps {
   params: Promise<{ id: string }>;
 }
