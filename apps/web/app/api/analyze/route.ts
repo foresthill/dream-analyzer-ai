@@ -26,17 +26,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Get AI provider configuration
+    const provider = (process.env.AI_PROVIDER || 'anthropic') as 'anthropic' | 'openrouter';
+    const apiKey = provider === 'anthropic'
+      ? process.env.ANTHROPIC_API_KEY
+      : process.env.OPENROUTER_API_KEY;
+    const model = process.env.AI_MODEL;
+
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY is not configured' },
+        { error: `${provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENROUTER_API_KEY'} is not configured` },
         { status: 500 }
       );
     }
 
     // Analyze the dream
-    const analyzer = new DreamAnalyzer(apiKey);
+    const analyzer = new DreamAnalyzer({
+      provider,
+      apiKey,
+      model,
+    });
     const result = await analyzer.analyze({
       dream: {
         title: dream.title,

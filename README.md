@@ -9,7 +9,7 @@
 - **React**: 19
 - **TypeScript**: 5.7
 - **Styling**: Tailwind CSS v3
-- **AI**: Claude API (Anthropic)
+- **AI**: Claude API (Anthropic) / OpenRouter (複数のLLM対応)
 - **State**: Zustand
 - **Database**: Vercel Postgres
 - **ORM**: Prisma 6.0
@@ -39,12 +39,29 @@ npm run db:push --workspace=@dream-analyzer/web
 
 `apps/web/.env.local` を作成:
 
+#### Option 1: Anthropic直接接続（デフォルト）
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/dream_analyzer"
+AI_PROVIDER="anthropic"
 ANTHROPIC_API_KEY="sk-ant-..."
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret"
+# AI_MODEL="claude-sonnet-4-20250514"  # オプション: モデル指定
 ```
+
+#### Option 2: OpenRouter経由（複数LLM対応）
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/dream_analyzer"
+AI_PROVIDER="openrouter"
+OPENROUTER_API_KEY="sk-or-..."
+AI_MODEL="anthropic/claude-3.5-sonnet"  # 使用するモデルを指定
+```
+
+**利用可能なモデル例（OpenRouter）:**
+- `anthropic/claude-3.5-sonnet` - Claude 3.5 Sonnet
+- `openai/gpt-4-turbo` - GPT-4 Turbo
+- `google/gemini-pro-1.5` - Gemini Pro 1.5
+- `meta-llama/llama-3.1-70b-instruct` - Llama 3.1 70B
+
+その他のモデルは [OpenRouter Models](https://openrouter.ai/models) を参照
 
 ### 開発サーバーの起動
 
