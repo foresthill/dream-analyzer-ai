@@ -2,6 +2,8 @@ import { prisma } from '@/lib/db';
 import { TrendChart } from '@/components/insights/trend-chart';
 import { SymbolFrequency } from '@/components/insights/symbol-frequency';
 
+export const dynamic = 'force-dynamic';
+
 export default async function InsightsPage() {
   const dreams = await prisma.dream.findMany({
     orderBy: { date: 'desc' },

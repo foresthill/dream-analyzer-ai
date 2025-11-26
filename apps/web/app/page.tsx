@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { DreamList } from '@/components/dreams/dream-list';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   return (
     <div className="space-y-6">

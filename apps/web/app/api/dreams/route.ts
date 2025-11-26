@@ -52,7 +52,11 @@ export async function POST(request: Request) {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dreamId: dream.id }),
+        body: JSON.stringify({
+          dreamId: dream.id,
+          provider: body.provider,
+          model: body.model,
+        }),
       }
     );
 
