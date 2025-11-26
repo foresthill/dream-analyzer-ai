@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build --workspace=@dream-analyzer/web",
-  "framework": null
+  "buildCommand": "cd ../.. && npm run build --workspace=@dream-analyzer/web",
+  "outputDirectory": "apps/web/.next",
+  "framework": null,
+  "installCommand": "npm install"
 }
