@@ -5,7 +5,7 @@ import { DreamAnalyzer } from '@dream-analyzer/dream-core';
 // POST /api/analyze - Analyze a dream
 export async function POST(request: Request) {
   try {
-    const { dreamId } = await request.json();
+    const { dreamId, provider: userProvider, model: userModel } = await request.json();
 
     if (!dreamId) {
       return NextResponse.json(
@@ -27,11 +27,12 @@ export async function POST(request: Request) {
     }
 
     // Get AI provider configuration
-    const provider = (process.env.AI_PROVIDER || 'anthropic') as 'anthropic' | 'openrouter';
+    // Priority: user selection > environment variable > default
+    const provider = (userProvider || process.env.AI_PROVIDER || 'anthropic') as 'anthropic' | 'openrouter';
     const apiKey = provider === 'anthropic'
       ? process.env.ANTHROPIC_API_KEY
       : process.env.OPENROUTER_API_KEY;
-    const model = process.env.AI_MODEL;
+    const model = userModel || process.env.AI_MODEL;
 
     if (!apiKey) {
       return NextResponse.json(
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
         underlyingMeanings: result.underlyingMeanings,
         insights: result.insights,
         relatedDreams: [],
+        provider,
+        model: analyzer['model'], // Get the actual model used from analyzer
       },
     });
 

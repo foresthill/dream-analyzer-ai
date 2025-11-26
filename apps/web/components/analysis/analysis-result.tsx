@@ -9,6 +9,8 @@ interface AnalysisResultProps {
     underlyingMeanings: string[];
     insights: string[];
     analyzedAt: Date;
+    provider?: string;
+    model?: string;
   };
 }
 
@@ -27,6 +29,22 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
 
   return (
     <div className="space-y-6">
+      {/* Model information */}
+      {(analysis.provider || analysis.model) && (
+        <div className="rounded-lg border border-border bg-secondary p-4">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-medium">🤖 使用モデル:</span>
+            <span className="font-mono text-muted-foreground">
+              {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
+              {analysis.model || 'Unknown'}
+            </span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {new Date(analysis.analyzedAt).toLocaleString('ja-JP')}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border border-border bg-background p-6">
         <h2 className="mb-4 text-xl font-semibold">心理学的解釈</h2>
         <p className="text-muted-foreground">{analysis.psychologicalInterpretation}</p>
