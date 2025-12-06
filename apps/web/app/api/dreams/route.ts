@@ -24,6 +24,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    // Ensure default user exists
+    await prisma.user.upsert({
+      where: { id: 'default-user' },
+      update: {},
+      create: {
+        id: 'default-user',
+        email: 'default@example.com',
+        name: 'Default User',
+      },
+    });
+
     const dream = await prisma.dream.create({
       data: {
         userId: 'default-user', // TODO: Get from auth
