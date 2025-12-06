@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dream-analyzer/shared-types": "workspace:*",
+    "@dream-analyzer/shared-types": "*",
     "react": "^19.0.0"
   },
   "devDependencies": {

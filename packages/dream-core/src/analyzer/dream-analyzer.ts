@@ -1,18 +1,56 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AnalysisRequest, AnalysisResponse } from '@dream-analyzer/shared-types';
 
-export class DreamAnalyzer {
-  private client: Anthropic;
+export type AIProvider = 'anthropic' | 'openrouter';
 
-  constructor(apiKey: string) {
-    this.client = new Anthropic({ apiKey });
+export interface DreamAnalyzerConfig {
+  provider: AIProvider;
+  apiKey: string;
+  model?: string;
+}
+
+export class DreamAnalyzer {
+  private provider: AIProvider;
+  private apiKey: string;
+  private model: string;
+  private anthropicClient?: Anthropic;
+
+  constructor(config: DreamAnalyzerConfig) {
+    this.provider = config.provider;
+    this.apiKey = config.apiKey;
+
+    // Set default models based on provider
+    if (config.model) {
+      this.model = config.model;
+    } else {
+      this.model = config.provider === 'anthropic'
+        ? 'claude-sonnet-4-20250514'
+        : 'anthropic/claude-3.5-sonnet';
+    }
+
+    // Initialize Anthropic client if using anthropic provider
+    if (this.provider === 'anthropic') {
+      this.anthropicClient = new Anthropic({ apiKey: this.apiKey });
+    }
   }
 
   async analyze(request: AnalysisRequest): Promise<AnalysisResponse> {
     const prompt = this.buildPrompt(request);
 
-    const message = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+    if (this.provider === 'anthropic') {
+      return this.analyzeWithAnthropic(prompt);
+    } else {
+      return this.analyzeWithOpenRouter(prompt);
+    }
+  }
+
+  private async analyzeWithAnthropic(prompt: string): Promise<AnalysisResponse> {
+    if (!this.anthropicClient) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    const message = await this.anthropicClient.messages.create({
+      model: this.model,
       max_tokens: 2000,
       messages: [
         {
@@ -26,8 +64,44 @@ export class DreamAnalyzer {
     if (textBlock.type !== 'text') {
       throw new Error('Unexpected response type');
     }
-    const response = textBlock.text;
-    return this.parseResponse(response);
+
+    return this.parseResponse(textBlock.text);
+  }
+
+  private async analyzeWithOpenRouter(prompt: string): Promise<AnalysisResponse> {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/foresthill/dream-analyzer-ai',
+        'X-Title': 'Dream Analyzer',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+
+    if (!text) {
+      throw new Error('No response from OpenRouter API');
+    }
+
+    return this.parseResponse(text);
   }
 
   private buildPrompt(request: AnalysisRequest): string {

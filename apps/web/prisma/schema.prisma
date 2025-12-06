@@ -84,7 +84,13 @@ model DreamAnalysis {
 
   relatedDreams String[]
 
+  // AI Model Information
+  provider String @default("anthropic")  // 'anthropic' or 'openrouter'
+  model    String @default("claude-sonnet-4-20250514")
+
   analyzedAt DateTime @default(now())
 
   @@index([dreamId])
+  @@index([provider])
+  @@index([model])
 }
