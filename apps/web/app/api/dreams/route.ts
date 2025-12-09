@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 // GET /api/dreams - List all dreams
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const dreamerId = searchParams.get('dreamerId');
+
     const dreams = await prisma.dream.findMany({
+      where: dreamerId ? { dreamerId } : undefined,
       orderBy: { date: 'desc' },
-      include: { analysis: true },
+      include: {
+        analysis: true,
+        dreamer: true,
+      },
     });
 
     return NextResponse.json(dreams);
@@ -38,6 +45,7 @@ export async function POST(request: Request) {
     const dream = await prisma.dream.create({
       data: {
         userId: 'default-user', // TODO: Get from auth
+        dreamerId: body.dreamerId,
         title: body.title,
         content: body.content,
         date: new Date(body.date),
