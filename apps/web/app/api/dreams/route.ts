@@ -57,32 +57,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // Automatically trigger analysis
-    const host = request.headers.get('host');
-    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const baseUrl = `${protocol}://${host}`;
-
-    const analyzeResponse = await fetch(
-      `${baseUrl}/api/analyze`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dreamId: dream.id,
-          provider: body.provider,
-          model: body.model,
-        }),
-      }
-    );
-
-    if (analyzeResponse.ok) {
-      const updatedDream = await prisma.dream.findUnique({
-        where: { id: dream.id },
-        include: { analysis: true },
-      });
-      return NextResponse.json(updatedDream, { status: 201 });
-    }
-
+    // Return the created dream (analysis will be triggered manually by user)
     return NextResponse.json(dream, { status: 201 });
   } catch (error) {
     console.error('Error creating dream:', error);
