@@ -4,18 +4,36 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSettingsStore } from '@/store/settings-store';
 
-interface AnalyzeButtonProps {
-  dreamId: string;
-  hasAnalysis: boolean;
+interface Analysis {
+  id: string;
+  provider: string;
+  model: string;
+  analyzedAt: Date;
 }
 
-export function AnalyzeButton({ dreamId, hasAnalysis }: AnalyzeButtonProps) {
+interface AnalyzeButtonProps {
+  dreamId: string;
+  existingAnalyses: Analysis[];
+}
+
+export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
   const { modelConfig } = useSettingsStore();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if current model combination already exists
+  const alreadyAnalyzed = existingAnalyses.some(
+    (a) => a.provider === modelConfig.provider && a.model === modelConfig.model
+  );
+
   const handleAnalyze = async () => {
+    if (alreadyAnalyzed) {
+      if (!confirm('このモデルで既に分析済みです。再分析しますか？')) {
+        return;
+      }
+    }
+
     setIsAnalyzing(true);
     setError(null);
 
@@ -46,6 +64,30 @@ export function AnalyzeButton({ dreamId, hasAnalysis }: AnalyzeButtonProps) {
 
   return (
     <div className="space-y-4">
+      {/* Existing analyses */}
+      {existingAnalyses.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-medium">既存の分析:</h3>
+          <div className="space-y-2">
+            {existingAnalyses.map((analysis) => (
+              <div
+                key={analysis.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-secondary/50 px-4 py-2 text-sm"
+              >
+                <div className="font-mono">
+                  {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
+                  {analysis.model}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(analysis.analyzedAt).toLocaleString('ja-JP')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Analyze button */}
       <div className="flex items-center gap-4">
         <button
           onClick={handleAnalyze}
@@ -53,6 +95,8 @@ export function AnalyzeButton({ dreamId, hasAnalysis }: AnalyzeButtonProps) {
           className={`rounded-lg px-6 py-3 font-semibold transition-colors ${
             isAnalyzing
               ? 'cursor-not-allowed bg-gray-300 text-gray-500'
+              : alreadyAnalyzed
+              ? 'bg-yellow-500 text-white hover:bg-yellow-600'
               : 'bg-primary text-primary-foreground hover:bg-primary/90'
           }`}
         >
@@ -80,8 +124,10 @@ export function AnalyzeButton({ dreamId, hasAnalysis }: AnalyzeButtonProps) {
               </svg>
               分析中...
             </span>
-          ) : hasAnalysis ? (
+          ) : alreadyAnalyzed ? (
             '再分析する'
+          ) : existingAnalyses.length > 0 ? (
+            '別モデルで分析'
           ) : (
             '夢を分析する'
           )}

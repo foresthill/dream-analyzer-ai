@@ -15,7 +15,11 @@ export default async function DreamPage({ params }: DreamPageProps) {
 
   const dream = await prisma.dream.findUnique({
     where: { id },
-    include: { analysis: true },
+    include: {
+      analyses: {
+        orderBy: { analyzedAt: 'desc' },
+      },
+    },
   });
 
   if (!dream) {
@@ -29,14 +33,21 @@ export default async function DreamPage({ params }: DreamPageProps) {
       {/* Analysis control */}
       <div className="rounded-lg border border-border bg-card p-6">
         <h2 className="mb-4 text-xl font-semibold">AI分析</h2>
-        <AnalyzeButton dreamId={dream.id} hasAnalysis={!!dream.analysis} />
+        <p className="mb-4 text-sm text-muted-foreground">
+          異なるAIモデルで分析して、結果を比較できます。
+        </p>
+        <AnalyzeButton dreamId={dream.id} existingAnalyses={dream.analyses} />
       </div>
 
       {/* Analysis results */}
-      {dream.analysis && (
-        <div>
-          <h2 className="mb-4 text-xl font-semibold">分析結果</h2>
-          <AnalysisResult analysis={dream.analysis} />
+      {dream.analyses.length > 0 && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold">
+            分析結果 ({dream.analyses.length}件)
+          </h2>
+          {dream.analyses.map((analysis) => (
+            <AnalysisResult key={analysis.id} analysis={analysis} />
+          ))}
         </div>
       )}
     </div>

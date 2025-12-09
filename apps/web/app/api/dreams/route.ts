@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       where: dreamerId ? { dreamerId } : undefined,
       orderBy: { date: 'desc' },
       include: {
-        analysis: true,
+        analyses: true,
         dreamer: true,
       },
     });

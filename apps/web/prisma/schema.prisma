@@ -70,7 +70,7 @@ model Dream {
 
   // 分析
   analyzed  Boolean        @default(false)
-  analysis  DreamAnalysis?
+  analyses  DreamAnalysis[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,7 +94,7 @@ enum DreamMood {
 
 model DreamAnalysis {
   id      String @id @default(cuid())
-  dreamId String @unique
+  dreamId String
   dream   Dream  @relation(fields: [dreamId], references: [id], onDelete: Cascade)
 
   psychologicalInterpretation String @db.Text
@@ -113,6 +113,7 @@ model DreamAnalysis {
 
   analyzedAt DateTime @default(now())
 
+  @@unique([dreamId, provider, model]) // 同じ夢を同じモデルで重複分析しない
   @@index([dreamId])
   @@index([provider])
   @@index([model])

@@ -58,6 +58,22 @@ export async function POST(request: Request) {
       },
     });
 
+    // Check if analysis with this provider/model already exists
+    const existingAnalysis = await prisma.dreamAnalysis.findFirst({
+      where: {
+        dreamId: dream.id,
+        provider,
+        model: analyzer['model'],
+      },
+    });
+
+    // Delete existing analysis if it exists (re-analysis)
+    if (existingAnalysis) {
+      await prisma.dreamAnalysis.delete({
+        where: { id: existingAnalysis.id },
+      });
+    }
+
     // Save the analysis
     const analysis = await prisma.dreamAnalysis.create({
       data: {
