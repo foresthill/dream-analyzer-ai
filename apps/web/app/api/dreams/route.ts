@@ -58,8 +58,12 @@ export async function POST(request: Request) {
     });
 
     // Automatically trigger analysis
+    const host = request.headers.get('host');
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+
     const analyzeResponse = await fetch(
-      `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/analyze`,
+      `${baseUrl}/api/analyze`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
