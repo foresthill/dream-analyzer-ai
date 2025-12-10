@@ -7,7 +7,12 @@ export async function GET() {
   try {
     const dreams = await prisma.dream.findMany({
       orderBy: { date: 'desc' },
-      include: { analysis: true },
+      include: {
+        analyses: {
+          orderBy: { analyzedAt: 'desc' },
+          take: 1, // Only get the latest analysis per dream
+        },
+      },
     });
 
     // Calculate mood distribution
@@ -20,11 +25,12 @@ export async function GET() {
       {} as Record<string, number>
     );
 
-    // Calculate symbol frequency
+    // Calculate symbol frequency (from latest analysis of each dream)
     const symbolCounts = new Map<string, number>();
     for (const dream of dreams) {
-      if (dream.analysis?.symbols) {
-        const symbols = dream.analysis.symbols as Array<{ symbol: string }>;
+      const latestAnalysis = dream.analyses[0]; // Get latest analysis
+      if (latestAnalysis?.symbols) {
+        const symbols = latestAnalysis.symbols as Array<{ symbol: string }>;
         for (const { symbol } of symbols) {
           symbolCounts.set(symbol, (symbolCounts.get(symbol) || 0) + 1);
         }
@@ -36,11 +42,12 @@ export async function GET() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    // Calculate theme frequency
+    // Calculate theme frequency (from latest analysis of each dream)
     const themeCounts = new Map<string, number>();
     for (const dream of dreams) {
-      if (dream.analysis?.themes) {
-        for (const theme of dream.analysis.themes) {
+      const latestAnalysis = dream.analyses[0]; // Get latest analysis
+      if (latestAnalysis?.themes) {
+        for (const theme of latestAnalysis.themes) {
           themeCounts.set(theme, (themeCounts.get(theme) || 0) + 1);
         }
       }
