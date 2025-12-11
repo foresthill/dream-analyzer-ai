@@ -39,7 +39,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
               {analysis.model || 'Unknown'}
             </span>
             <span className="ml-auto text-xs text-muted-foreground">
-              {new Date(analysis.analyzedAt).toLocaleString('ja-JP')}
+              {new Date(analysis.analyzedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
             </span>
           </div>
         </div>
