@@ -5,13 +5,7 @@
   - Added the required column `dreamerId` to the `Dream` table without a default value. This is not possible if the table is not empty.
 
 */
--- DropIndex
-DROP INDEX "DreamAnalysis_dreamId_key";
-
--- AlterTable
-ALTER TABLE "Dream" ADD COLUMN     "dreamerId" TEXT;
-
--- CreateTable
+-- CreateTable: Dreamer
 CREATE TABLE "Dreamer" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -24,22 +18,41 @@ CREATE TABLE "Dreamer" (
     CONSTRAINT "Dreamer_pkey" PRIMARY KEY ("id")
 );
 
-
-
 -- CreateIndex
 CREATE INDEX "Dreamer_userId_idx" ON "Dreamer"("userId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Dreamer_userId_name_key" ON "Dreamer"("userId", "name");
-
--- CreateIndex
-CREATE INDEX "Dream_dreamerId_date_idx" ON "Dream"("dreamerId", "date");
-
--- CreateIndex
-CREATE UNIQUE INDEX "DreamAnalysis_dreamId_provider_model_key" ON "DreamAnalysis"("dreamId", "provider", "model");
 
 -- AddForeignKey
 ALTER TABLE "Dreamer" ADD CONSTRAINT "Dreamer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- Insert default-user first
+INSERT INTO "User" ("id", "email", "name", "createdAt", "updatedAt")
+VALUES ('default-user', 'default@example.com', 'Default User', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert default-dreamer
+INSERT INTO "Dreamer" ("id", "userId", "name", "relationship", "createdAt", "updatedAt")
+VALUES ('default-dreamer', 'default-user', '自分', '本人', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT DO NOTHING;
+
+-- Add dreamerId column (nullable first)
+ALTER TABLE "Dream" ADD COLUMN "dreamerId" TEXT;
+
+-- Update existing dreams
+UPDATE "Dream" SET "dreamerId" = 'default-dreamer' WHERE "dreamerId" IS NULL;
+
+-- Make dreamerId required
+ALTER TABLE "Dream" ALTER COLUMN "dreamerId" SET NOT NULL;
+
+-- CreateIndex
+CREATE INDEX "Dream_dreamerId_date_idx" ON "Dream"("dreamerId", "date");
+
 -- AddForeignKey
 ALTER TABLE "Dream" ADD CONSTRAINT "Dream_dreamerId_fkey" FOREIGN KEY ("dreamerId") REFERENCES "Dreamer"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- DropIndex (if exists) ← ここを修正
+DROP INDEX IF EXISTS "DreamAnalysis_dreamId_key";
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DreamAnalysis_dreamId_provider_model_key" ON "DreamAnalysis"("dreamId", "provider", "model");
+
