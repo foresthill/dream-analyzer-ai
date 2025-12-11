@@ -167,16 +167,17 @@ export function DreamCalendar({ dreams }: DreamCalendarProps) {
 
       {/* Legend */}
       <div className="rounded-lg border border-border bg-card p-4">
-        <h3 className="mb-2 text-sm font-semibold">凡例</h3>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <h3 className="mb-2 text-sm font-semibold">使い方</h3>
+        <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded border-2 border-primary bg-primary/10"></div>
-            <span>今日</span>
+            <span>今日の日付はハイライト表示されます</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-primary/20"></div>
-            <span>夢が記録されている日</span>
+            <span>夢が記録されている日には、夢のタイトルが表示されます</span>
           </div>
+          <p className="pt-2">💡 夢のタイトルをクリックすると、その夢の詳細ページに移動できます</p>
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/db';
+import Link from 'next/link';
+import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,30 +32,40 @@ export default async function AnalysisPage() {
           <p className="text-muted-foreground">まだ分析された夢がありません</p>
         ) : (
           recentAnalyses.map((analysis) => (
-            <div
+            <Link
               key={analysis.id}
-              className="rounded-lg border border-border bg-background p-4"
+              href={`/dreams/${analysis.dream.id}`}
+              className="block rounded-lg border border-border bg-background p-4 transition-colors hover:bg-secondary/50"
             >
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-semibold">{analysis.dream.title}</h3>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(analysis.analyzedAt).toLocaleDateString('ja-JP')}
-                </span>
+                <div className="text-right text-sm text-muted-foreground">
+                  <div>{formatDate(analysis.dream.date)}</div>
+                  <div className="text-xs">
+                    分析: {new Date(analysis.analyzedAt).toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
               </div>
-              <p className="line-clamp-2 text-sm text-muted-foreground">
+              <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">
                 {analysis.psychologicalInterpretation}
               </p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {analysis.themes.slice(0, 3).map((theme) => (
-                  <span
-                    key={theme}
-                    className="rounded-full bg-secondary px-2 py-0.5 text-xs"
-                  >
-                    {theme}
-                  </span>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1">
+                  {analysis.themes.slice(0, 3).map((theme) => (
+                    <span
+                      key={theme}
+                      className="rounded-full bg-secondary px-2 py-0.5 text-xs"
+                    >
+                      {theme}
+                    </span>
+                  ))}
+                </div>
+                <span className="ml-auto text-xs font-mono text-muted-foreground">
+                  {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
+                  {analysis.model}
+                </span>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>
