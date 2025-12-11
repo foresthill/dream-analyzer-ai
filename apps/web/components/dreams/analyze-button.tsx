@@ -19,7 +19,7 @@ interface AnalyzeButtonProps {
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
-  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS.anthropic[0].value);
+  const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
