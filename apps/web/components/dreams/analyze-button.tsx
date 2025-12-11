@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSettingsStore } from '@/store/settings-store';
+import { AVAILABLE_MODELS, type AIProvider } from '@/store/settings-store';
 
 interface Analysis {
   id: string;
@@ -18,14 +18,20 @@ interface AnalyzeButtonProps {
 
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
-  const { modelConfig } = useSettingsStore();
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
+  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Check if current model combination already exists
   const alreadyAnalyzed = existingAnalyses.some(
-    (a) => a.provider === modelConfig.provider && a.model === modelConfig.model
+    (a) => a.provider === selectedProvider && a.model === selectedModel
   );
+
+  const handleProviderChange = (provider: AIProvider) => {
+    setSelectedProvider(provider);
+    setSelectedModel(AVAILABLE_MODELS[provider][0].value);
+  };
 
   const handleAnalyze = async () => {
     if (alreadyAnalyzed) {
@@ -43,8 +49,8 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dreamId,
-          provider: modelConfig.provider,
-          model: modelConfig.model,
+          provider: selectedProvider,
+          model: selectedModel,
         }),
       });
 
@@ -87,12 +93,50 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
         </div>
       )}
 
+      {/* Model selection */}
+      <div className="rounded-lg border border-border bg-background p-4">
+        <h3 className="mb-3 text-sm font-medium">分析に使用するモデルを選択:</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="provider" className="mb-1 block text-xs font-medium text-muted-foreground">
+              プロバイダー
+            </label>
+            <select
+              id="provider"
+              value={selectedProvider}
+              onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="model" className="mb-1 block text-xs font-medium text-muted-foreground">
+              モデル
+            </label>
+            <select
+              id="model"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              {AVAILABLE_MODELS[selectedProvider].map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Analyze button */}
-      <div className="flex items-center gap-4">
+      <div>
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className={`rounded-lg px-6 py-3 font-semibold transition-colors ${
+          className={`w-full rounded-lg px-6 py-3 font-semibold transition-colors ${
             isAnalyzing
               ? 'cursor-not-allowed bg-gray-300 text-gray-500'
               : alreadyAnalyzed
@@ -101,7 +145,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
           }`}
         >
           {isAnalyzing ? (
-            <span className="flex items-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               <svg
                 className="h-5 w-5 animate-spin"
                 xmlns="http://www.w3.org/2000/svg"
@@ -132,11 +176,6 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
             '夢を分析する'
           )}
         </button>
-
-        <div className="text-sm text-muted-foreground">
-          使用モデル: {modelConfig.provider === 'openrouter' ? 'OpenRouter / ' : ''}
-          {modelConfig.model}
-        </div>
       </div>
 
       {error && (
