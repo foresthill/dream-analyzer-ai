@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { DreamDetail } from '@/components/dreams/dream-detail';
 import { AnalysisResult } from '@/components/analysis/analysis-result';
+import { AnalysisChat } from '@/components/analysis/analysis-chat';
 import { AnalyzeButton } from '@/components/dreams/analyze-button';
 import { prisma } from '@/lib/db';
 
@@ -66,6 +67,11 @@ export default async function DreamPage({ params }: DreamPageProps) {
                   </div>
                 </div>
                 <AnalysisResult analysis={analysis} />
+
+                {/* Chat section for this analysis */}
+                <div className="mt-6 border-t border-border pt-6">
+                  <AnalysisChat analysisId={analysis.id} />
+                </div>
               </section>
             ))}
           </div>

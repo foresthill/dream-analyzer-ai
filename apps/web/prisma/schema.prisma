@@ -113,8 +113,25 @@ model DreamAnalysis {
 
   analyzedAt DateTime @default(now())
 
+  // 対話履歴
+  conversations AnalysisConversation[]
+
   @@unique([dreamId, provider, model]) // 同じ夢を同じモデルで重複分析しない
   @@index([dreamId])
   @@index([provider])
   @@index([model])
+}
+
+// 分析結果に対する対話履歴
+model AnalysisConversation {
+  id         String @id @default(cuid())
+  analysisId String
+  analysis   DreamAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  role       String  // 'user' or 'assistant'
+  content    String  @db.Text
+
+  createdAt  DateTime @default(now())
+
+  @@index([analysisId])
 }
