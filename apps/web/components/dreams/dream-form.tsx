@@ -34,6 +34,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
   const [mood, setMood] = useState<DreamMood>('neutral');
   const [lucidity, setLucidity] = useState(5);
   const [vividness, setVividness] = useState(5);
@@ -73,7 +74,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
       dreamerId,
       title,
       content,
-      date: new Date(),
+      date: new Date(date),
       mood,
       lucidity,
       vividness,
@@ -145,6 +146,21 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="例: 空を飛ぶ夢"
+          required
+          className="w-full rounded-md border border-border bg-background px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="date" className="mb-1 block text-sm font-medium">
+          日付 <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          max={new Date().toISOString().split('T')[0]}
           required
           className="w-full rounded-md border border-border bg-background px-3 py-2"
         />
