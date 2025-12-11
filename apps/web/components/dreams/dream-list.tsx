@@ -5,7 +5,7 @@ export async function DreamList() {
   const dreams = await prisma.dream.findMany({
     orderBy: { date: 'desc' },
     take: 20,
-    include: { analysis: true },
+    include: { analyses: true, dreamer: true },
   });
 
   if (dreams.length === 0) {

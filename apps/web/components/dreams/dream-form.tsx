@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { DreamMood, CreateDreamInput } from '@dream-analyzer/shared-types';
+import Link from 'next/link';
 
 const MOOD_OPTIONS: { value: DreamMood; label: string }[] = [
   { value: 'joyful', label: '喜び' },
@@ -15,14 +16,25 @@ const MOOD_OPTIONS: { value: DreamMood; label: string }[] = [
   { value: 'neutral', label: '中立' },
 ];
 
+interface Dreamer {
+  id: string;
+  name: string;
+  relationship?: string;
+}
+
 interface DreamFormProps {
-  onSubmit: (dream: CreateDreamInput) => void;
+  onSubmit: (dream: CreateDreamInput & { dreamerId: string }) => void;
   isSubmitting?: boolean;
 }
 
 export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
+  const [dreamers, setDreamers] = useState<Dreamer[]>([]);
+  const [dreamerId, setDreamerId] = useState('');
+  const [loading, setLoading] = useState(true);
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
   const [mood, setMood] = useState<DreamMood>('neutral');
   const [lucidity, setLucidity] = useState(5);
   const [vividness, setVividness] = useState(5);
@@ -31,12 +43,38 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
   const [characters, setCharacters] = useState('');
   const [emotions, setEmotions] = useState('');
 
+  useEffect(() => {
+    const fetchDreamers = async () => {
+      try {
+        const response = await fetch('/api/dreamers');
+        const data = await response.json();
+        setDreamers(data);
+        if (data.length > 0) {
+          setDreamerId(data[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dreamers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDreamers();
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!dreamerId) {
+      alert('夢を見た人を選択してください');
+      return;
+    }
+
     onSubmit({
+      dreamerId,
       title,
       content,
-      date: new Date(),
+      date: new Date(date),
       mood,
       lucidity,
       vividness,
@@ -47,8 +85,57 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
     });
   };
 
+  if (loading) {
+    return <div className="text-center text-muted-foreground">読み込み中...</div>;
+  }
+
+  if (dreamers.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <p className="mb-4 text-muted-foreground">
+          まず、夢を見た人を登録してください。
+        </p>
+        <Link
+          href="/dreamers"
+          className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          夢を見た人を登録する
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Dreamer selection */}
+      <div>
+        <label htmlFor="dreamer" className="mb-1 block text-sm font-medium">
+          夢を見た人 <span className="text-red-500">*</span>
+        </label>
+        <div className="flex gap-2">
+          <select
+            id="dreamer"
+            value={dreamerId}
+            onChange={(e) => setDreamerId(e.target.value)}
+            required
+            className="flex-1 rounded-md border border-border bg-background px-3 py-2"
+          >
+            {dreamers.map((dreamer) => (
+              <option key={dreamer.id} value={dreamer.id}>
+                {dreamer.name}
+                {dreamer.relationship && ` (${dreamer.relationship})`}
+              </option>
+            ))}
+          </select>
+          <Link
+            href="/dreamers"
+            className="whitespace-nowrap rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
+          >
+            管理
+          </Link>
+        </div>
+      </div>
+
       <div>
         <label htmlFor="title" className="mb-1 block text-sm font-medium">
           夢のタイトル
@@ -59,6 +146,21 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="例: 空を飛ぶ夢"
+          required
+          className="w-full rounded-md border border-border bg-background px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label htmlFor="date" className="mb-1 block text-sm font-medium">
+          日付 <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          max={new Date().toISOString().split('T')[0]}
           required
           className="w-full rounded-md border border-border bg-background px-3 py-2"
         />

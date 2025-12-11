@@ -14,15 +14,37 @@ model User {
   image     String?
 
   dreams    Dream[]
+  dreamers  Dreamer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Dreamer {
+  id           String  @id @default(cuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name         String  // 名前（例: 自分、妻、妻の母）
+  relationship String? // 関係性（例: 本人、配偶者、義母）
+  notes        String? @db.Text // メモ
+
+  dreams       Dream[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, name]) // 同じユーザー内で同じ名前は不可
+  @@index([userId])
+}
+
 model Dream {
-  id      String @id @default(cuid())
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dreamerId String
+  dreamer   Dreamer @relation(fields: [dreamerId], references: [id], onDelete: Cascade)
 
   title   String
   content String @db.Text
@@ -48,12 +70,13 @@ model Dream {
 
   // 分析
   analyzed  Boolean        @default(false)
-  analysis  DreamAnalysis?
+  analyses  DreamAnalysis[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, date])
+  @@index([dreamerId, date])
   @@index([date])
 }
 
@@ -71,7 +94,7 @@ enum DreamMood {
 
 model DreamAnalysis {
   id      String @id @default(cuid())
-  dreamId String @unique
+  dreamId String
   dream   Dream  @relation(fields: [dreamId], references: [id], onDelete: Cascade)
 
   psychologicalInterpretation String @db.Text
@@ -84,7 +107,14 @@ model DreamAnalysis {
 
   relatedDreams String[]
 
+  // AI Model Information
+  provider String @default("anthropic")  // 'anthropic' or 'openrouter'
+  model    String @default("claude-sonnet-4-20250514")
+
   analyzedAt DateTime @default(now())
 
+  @@unique([dreamId, provider, model]) // 同じ夢を同じモデルで重複分析しない
   @@index([dreamId])
+  @@index([provider])
+  @@index([model])
 }

@@ -5,7 +5,7 @@ import { DreamAnalyzer } from '@dream-analyzer/dream-core';
 // POST /api/analyze - Analyze a dream
 export async function POST(request: Request) {
   try {
-    const { dreamId } = await request.json();
+    const { dreamId, provider: userProvider, model: userModel } = await request.json();
 
     if (!dreamId) {
       return NextResponse.json(
@@ -26,17 +26,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Get AI provider configuration
+    // Priority: user selection > environment variable > default
+    const provider = (userProvider || process.env.AI_PROVIDER || 'anthropic') as 'anthropic' | 'openrouter';
+    const apiKey = provider === 'anthropic'
+      ? process.env.ANTHROPIC_API_KEY
+      : process.env.OPENROUTER_API_KEY;
+    const model = userModel || process.env.AI_MODEL;
+
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'ANTHROPIC_API_KEY is not configured' },
+        { error: `${provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENROUTER_API_KEY'} is not configured` },
         { status: 500 }
       );
     }
 
     // Analyze the dream
-    const analyzer = new DreamAnalyzer(apiKey);
+    const analyzer = new DreamAnalyzer({
+      provider,
+      apiKey,
+      model,
+    });
     const result = await analyzer.analyze({
       dream: {
         title: dream.title,
@@ -47,6 +57,22 @@ export async function POST(request: Request) {
         characters: dream.characters,
       },
     });
+
+    // Check if analysis with this provider/model already exists
+    const existingAnalysis = await prisma.dreamAnalysis.findFirst({
+      where: {
+        dreamId: dream.id,
+        provider,
+        model: analyzer['model'],
+      },
+    });
+
+    // Delete existing analysis if it exists (re-analysis)
+    if (existingAnalysis) {
+      await prisma.dreamAnalysis.delete({
+        where: { id: existingAnalysis.id },
+      });
+    }
 
     // Save the analysis
     const analysis = await prisma.dreamAnalysis.create({
@@ -59,6 +85,8 @@ export async function POST(request: Request) {
         underlyingMeanings: result.underlyingMeanings,
         insights: result.insights,
         relatedDreams: [],
+        provider,
+        model: analyzer['model'], // Get the actual model used from analyzer
       },
     });
 
