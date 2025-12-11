@@ -6,9 +6,11 @@ import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: '夢日記', href: '/', icon: '📔' },
+  { name: 'カレンダー', href: '/calendar', icon: '📅' },
   { name: '分析履歴', href: '/analysis', icon: '🔍' },
   { name: 'インサイト', href: '/insights', icon: '📊' },
   { name: 'シンボル辞典', href: '/symbols', icon: '📖' },
+  { name: '夢を見た人', href: '/dreamers', icon: '👥' },
   { name: '設定', href: '/settings', icon: '⚙️' },
 ];
 

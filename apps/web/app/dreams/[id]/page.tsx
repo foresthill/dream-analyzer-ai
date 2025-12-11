@@ -41,13 +41,34 @@ export default async function DreamPage({ params }: DreamPageProps) {
 
       {/* Analysis results */}
       {dream.analyses.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <h2 className="text-xl font-semibold">
             分析結果 ({dream.analyses.length}件)
           </h2>
-          {dream.analyses.map((analysis) => (
-            <AnalysisResult key={analysis.id} analysis={analysis} />
-          ))}
+          <div className="space-y-6">
+            {dream.analyses.map((analysis, index) => (
+              <section
+                key={analysis.id}
+                className="rounded-lg border-2 border-border bg-card p-6 shadow-sm"
+              >
+                <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+                  <h3 className="text-lg font-semibold">
+                    分析 #{dream.analyses.length - index}
+                  </h3>
+                  <div className="text-right">
+                    <div className="text-sm font-mono text-muted-foreground">
+                      {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
+                      {analysis.model}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(analysis.analyzedAt).toLocaleString('ja-JP')}
+                    </div>
+                  </div>
+                </div>
+                <AnalysisResult analysis={analysis} />
+              </section>
+            ))}
+          </div>
         </div>
       )}
     </div>
