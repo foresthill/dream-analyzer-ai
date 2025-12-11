@@ -11,6 +11,16 @@ export async function GET() {
         _count: {
           select: { dreams: true },
         },
+        dreams: {
+          orderBy: { date: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            mood: true,
+            analyzed: true,
+          },
+        },
       },
     });
 

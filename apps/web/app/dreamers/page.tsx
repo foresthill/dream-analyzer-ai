@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatDate } from '@/lib/utils';
+
+interface Dream {
+  id: string;
+  title: string;
+  date: Date;
+  mood: string;
+  analyzed: boolean;
+}
 
 interface Dreamer {
   id: string;
@@ -9,12 +18,14 @@ interface Dreamer {
   relationship?: string;
   notes?: string;
   _count?: { dreams: number };
+  dreams?: Dream[];
 }
 
 export default function DreamersPage() {
   const [dreamers, setDreamers] = useState<Dreamer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [expandedDreamer, setExpandedDreamer] = useState<string | null>(null);
   const [newDreamer, setNewDreamer] = useState({ name: '', relationship: '', notes: '' });
 
   useEffect(() => {
@@ -184,36 +195,75 @@ export default function DreamersPage() {
           dreamers.map((dreamer) => (
             <div
               key={dreamer.id}
-              className="rounded-lg border border-border bg-card p-6"
+              className="rounded-lg border border-border bg-card overflow-hidden"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">{dreamer.name}</h3>
-                  {dreamer.relationship && (
-                    <p className="text-sm text-muted-foreground">{dreamer.relationship}</p>
-                  )}
-                  {dreamer.notes && (
-                    <p className="mt-2 text-sm text-muted-foreground">{dreamer.notes}</p>
-                  )}
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    記録された夢: {dreamer._count?.dreams || 0}件
-                  </p>
-                </div>
+              <div className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{dreamer.name}</h3>
+                    {dreamer.relationship && (
+                      <p className="text-sm text-muted-foreground">{dreamer.relationship}</p>
+                    )}
+                    {dreamer.notes && (
+                      <p className="mt-2 text-sm text-muted-foreground">{dreamer.notes}</p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">
+                        記録された夢: {dreamer._count?.dreams || 0}件
+                      </p>
+                      {(dreamer._count?.dreams || 0) > 0 && (
+                        <button
+                          onClick={() => setExpandedDreamer(expandedDreamer === dreamer.id ? null : dreamer.id)}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {expandedDreamer === dreamer.id ? '▲ 閉じる' : '▼ 表示'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-                <button
-                  onClick={() =>
-                    handleDelete(
-                      dreamer.id,
-                      dreamer.name,
-                      dreamer._count?.dreams || 0
-                    )
-                  }
-                  className="text-sm text-red-500 hover:text-red-700"
-                  disabled={(dreamer._count?.dreams || 0) > 0}
-                >
-                  {(dreamer._count?.dreams || 0) > 0 ? '削除不可' : '削除'}
-                </button>
+                  <button
+                    onClick={() =>
+                      handleDelete(
+                        dreamer.id,
+                        dreamer.name,
+                        dreamer._count?.dreams || 0
+                      )
+                    }
+                    className="text-sm text-red-500 hover:text-red-700"
+                    disabled={(dreamer._count?.dreams || 0) > 0}
+                  >
+                    {(dreamer._count?.dreams || 0) > 0 ? '削除不可' : '削除'}
+                  </button>
+                </div>
               </div>
+
+              {/* Dreams accordion */}
+              {expandedDreamer === dreamer.id && dreamer.dreams && dreamer.dreams.length > 0 && (
+                <div className="border-t border-border bg-secondary/20 p-4">
+                  <div className="space-y-2">
+                    {dreamer.dreams.map((dream) => (
+                      <Link
+                        key={dream.id}
+                        href={`/dreams/${dream.id}`}
+                        className="block rounded-md border border-border bg-background p-3 hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium">{dream.title}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(new Date(dream.date))}
+                            </p>
+                          </div>
+                          {dream.analyzed && (
+                            <span className="text-xs text-primary">分析済み</span>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}

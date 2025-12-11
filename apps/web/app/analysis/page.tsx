@@ -42,7 +42,14 @@ export default async function AnalysisPage() {
                 <div className="text-right text-sm text-muted-foreground">
                   <div>{formatDate(analysis.dream.date)}</div>
                   <div className="text-xs">
-                    分析: {new Date(analysis.analyzedAt).toLocaleDateString('ja-JP')}
+                    分析: {new Date(analysis.analyzedAt).toLocaleString('ja-JP', {
+                      timeZone: 'Asia/Tokyo',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </div>
                 </div>
               </div>
