@@ -85,7 +85,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
                   {analysis.model}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {new Date(analysis.analyzedAt).toLocaleString('ja-JP')}
+                  {new Date(analysis.analyzedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                 </div>
               </div>
             ))}

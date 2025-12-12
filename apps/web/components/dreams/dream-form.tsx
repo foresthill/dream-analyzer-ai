@@ -34,7 +34,12 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
+  // JSTで今日の日付を取得
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    const jstDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    return jstDate.toISOString().split('T')[0];
+  });
   const [mood, setMood] = useState<DreamMood>('neutral');
   const [lucidity, setLucidity] = useState(5);
   const [vividness, setVividness] = useState(5);
@@ -160,7 +165,6 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          max={new Date().toISOString().split('T')[0]}
           required
           className="w-full rounded-md border border-border bg-background px-3 py-2"
         />
