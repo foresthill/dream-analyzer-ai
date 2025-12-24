@@ -121,12 +121,12 @@ ${analysis.insights.map((i) => `- ${i}`).join('\n')}
 
       const response = await anthropic.messages.create({
         model: analysis.model || 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
+        max_tokens: 4096,
         system: `あなたは夢分析の専門家です。以下の夢とその分析結果に基づいて、ユーザーの質問に答えたり、分析を深めたり、修正を提案したりしてください。
 
 ${analysisContext}
 
-ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。`,
+ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。回答は最後まで完結させてください。`,
         messages: existingConversations.map((c) => ({
           role: c.role,
           content: c.content,
@@ -136,6 +136,11 @@ ${analysisContext}
       aiResponse = response.content[0].type === 'text'
         ? response.content[0].text
         : '';
+
+      // 回答が途中で切れた場合の警告
+      if (response.stop_reason === 'max_tokens') {
+        aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
+      }
     } else {
       // OpenRouter
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -154,19 +159,24 @@ ${analysisContext}
 
 ${analysisContext}
 
-ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。`,
+ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。回答は最後まで完結させてください。`,
             },
             ...existingConversations.map((c) => ({
               role: c.role,
               content: c.content,
             })),
           ],
-          max_tokens: 2048,
+          max_tokens: 4096,
         }),
       });
 
       const data = await response.json();
       aiResponse = data.choices?.[0]?.message?.content || '';
+
+      // 回答が途中で切れた場合の警告
+      if (data.choices?.[0]?.finish_reason === 'length') {
+        aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
+      }
     }
 
     // Save AI response
