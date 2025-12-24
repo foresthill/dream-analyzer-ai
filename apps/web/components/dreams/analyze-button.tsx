@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AVAILABLE_MODELS, type AIProvider } from '@/store/settings-store';
+import { AVAILABLE_MODELS, useSettingsStore, type AIProvider } from '@/store/settings-store';
 
 interface Analysis {
   id: string;
@@ -18,10 +18,21 @@ interface AnalyzeButtonProps {
 
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
+  const { modelConfig } = useSettingsStore();
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // 設定ストアからデフォルト値を初期化（ハイドレーション対策）
+  useEffect(() => {
+    if (!isInitialized) {
+      setSelectedProvider(modelConfig.provider);
+      setSelectedModel(modelConfig.model);
+      setIsInitialized(true);
+    }
+  }, [modelConfig, isInitialized]);
 
   // Check if current model combination already exists
   const alreadyAnalyzed = existingAnalyses.some(

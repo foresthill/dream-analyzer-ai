@@ -37,8 +37,10 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
   // JSTで今日の日付を取得
   const [date, setDate] = useState(() => {
     const now = new Date();
-    const jstDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-    return jstDate.toISOString().split('T')[0];
+    // JSTはUTC+9なので、9時間を加算してからUTC日付を取得
+    const jstOffset = 9 * 60 * 60 * 1000;
+    const jstTime = new Date(now.getTime() + jstOffset);
+    return jstTime.toISOString().split('T')[0];
   });
   const [mood, setMood] = useState<DreamMood>('neutral');
   const [lucidity, setLucidity] = useState(5);
