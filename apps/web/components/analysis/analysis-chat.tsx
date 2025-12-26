@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { SimpleMarkdown } from '@/components/ui/simple-markdown';
 
 interface Message {
   id: string;
@@ -183,7 +184,11 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
                           : 'bg-secondary text-secondary-foreground'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                      {message.role === 'user' ? (
+                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                      ) : (
+                        <SimpleMarkdown content={message.content} className="text-sm" />
+                      )}
                       <p className="mt-1 text-xs opacity-70">
                         {new Date(message.createdAt).toLocaleString('ja-JP', {
                           timeZone: 'Asia/Tokyo',
