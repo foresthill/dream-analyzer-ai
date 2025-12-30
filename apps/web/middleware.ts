@@ -1,41 +1,46 @@
-import { auth } from './auth';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isLoginPage = req.nextUrl.pathname === '/login';
-  const isApiRoute = req.nextUrl.pathname.startsWith('/api');
-  const isAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
-  const isPublicRoute = req.nextUrl.pathname === '/';
+// 軽量なミドルウェア（next-authをインポートしない）
+// 認証チェックはAPIルートとページで行う
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  // Allow auth API routes
-  if (isAuthRoute) {
-    return NextResponse.next();
+  // 認証が必要なパス
+  const protectedPaths = [
+    '/dreams/new',
+    '/dreams/',
+    '/analysis',
+    '/calendar',
+    '/insights',
+    '/dreamers',
+    '/settings',
+  ];
+
+  // セッショントークンの確認（cookieベース）
+  const sessionToken =
+    request.cookies.get('authjs.session-token')?.value ||
+    request.cookies.get('__Secure-authjs.session-token')?.value;
+
+  const isProtectedPath = protectedPaths.some(
+    (path) => pathname === path || pathname.startsWith(path)
+  );
+
+  // 保護されたパスで未認証の場合、ログインページへリダイレクト
+  if (isProtectedPath && !sessionToken) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect logged-in users away from login page
-  if (isLoginPage && isLoggedIn) {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  // Allow login page for everyone
-  if (isLoginPage) {
-    return NextResponse.next();
-  }
-
-  // For API routes, let the route handlers deal with auth
-  if (isApiRoute) {
-    return NextResponse.next();
-  }
-
-  // Redirect unauthenticated users to login for protected pages
-  if (!isLoggedIn && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  // ログインページにセッションがある場合、トップへリダイレクト
+  if (pathname === '/login' && sessionToken) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
