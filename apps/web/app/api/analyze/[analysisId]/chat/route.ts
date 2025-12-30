@@ -13,7 +13,13 @@ async function verifyAnalysisOwnership(analysisId: string, userId: string) {
     where: { id: analysisId },
     include: { dream: { select: { userId: true } } },
   });
-  return analysis?.dream.userId === userId ? analysis : null;
+
+  if (!analysis) {
+    return { exists: false, owned: false, analysis: null };
+  }
+
+  const owned = analysis.dream.userId === userId;
+  return { exists: true, owned, analysis: owned ? analysis : null };
 }
 
 // GET /api/analyze/[analysisId]/chat - Get conversation history
@@ -27,9 +33,12 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { analysisId } = await params;
 
     // Verify ownership
-    const analysis = await verifyAnalysisOwnership(analysisId, session.user.id);
-    if (!analysis) {
-      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+    const { exists, owned, analysis } = await verifyAnalysisOwnership(analysisId, session.user.id);
+    if (!exists) {
+      return NextResponse.json({ error: '分析が見つかりません' }, { status: 404 });
+    }
+    if (!owned) {
+      return NextResponse.json({ error: 'この分析にアクセスする権限がありません' }, { status: 403 });
     }
 
     const conversations = await prisma.analysisConversation.findMany({
@@ -76,10 +85,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
-    if (!analysis || analysis.dream.userId !== session.user.id) {
+    if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: '分析が見つかりません' },
         { status: 404 }
+      );
+    }
+
+    if (analysis.dream.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'この分析にアクセスする権限がありません' },
+        { status: 403 }
       );
     }
 
@@ -238,9 +254,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const { analysisId } = await params;
 
     // Verify ownership
-    const analysis = await verifyAnalysisOwnership(analysisId, session.user.id);
-    if (!analysis) {
-      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+    const { exists, owned } = await verifyAnalysisOwnership(analysisId, session.user.id);
+    if (!exists) {
+      return NextResponse.json({ error: '分析が見つかりません' }, { status: 404 });
+    }
+    if (!owned) {
+      return NextResponse.json({ error: 'この分析にアクセスする権限がありません' }, { status: 403 });
     }
 
     await prisma.analysisConversation.deleteMany({
