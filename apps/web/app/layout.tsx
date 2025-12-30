@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LayoutWrapper } from '@/components/layout/layout-wrapper';
+import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
   title: 'Dream Analyzer - AI夢診断アプリ',
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="antialiased">
-        <div className="flex min-h-screen flex-col">
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </div>
+        <Providers>
+          <div className="flex min-h-screen flex-col">
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </div>
+        </Providers>
       </body>
     </html>
   );

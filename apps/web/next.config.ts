@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
     '@dream-analyzer/dream-core',
     '@dream-analyzer/ui-components',
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

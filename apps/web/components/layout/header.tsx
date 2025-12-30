@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import Image from 'next/image';
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const { data: session, status } = useSession();
+
   return (
     <header className="border-b border-border bg-background">
       <div className="flex h-14 items-center px-4">
@@ -36,12 +40,50 @@ export function Header({ onMenuClick }: HeaderProps) {
           <span className="text-lg font-bold">Dream Analyzer</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4">
-          <Link
-            href="/dreams/new"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            夢を記録
-          </Link>
+          {session && (
+            <Link
+              href="/dreams/new"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              夢を記録
+            </Link>
+          )}
+
+          {status === 'loading' ? (
+            <div className="h-8 w-8 animate-pulse rounded-full bg-secondary" />
+          ) : session ? (
+            <div className="flex items-center gap-3">
+              <span className="hidden text-sm text-muted-foreground md:block">
+                {session.user?.name}
+              </span>
+              {session.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name || 'ユーザー'}
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  {session.user?.name?.charAt(0) || 'U'}
+                </div>
+              )}
+              <button
+                onClick={() => signOut()}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                ログアウト
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => signIn()}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+            >
+              ログイン
+            </button>
+          )}
         </nav>
       </div>
     </header>

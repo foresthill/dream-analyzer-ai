@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { DreamAnalyzer } from '@dream-analyzer/dream-core';
+import { auth } from '@/auth';
 
 // POST /api/analyze - Analyze a dream
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { dreamId, provider: userProvider, model: userModel } = await request.json();
 
     if (!dreamId) {
@@ -14,9 +20,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the dream
-    const dream = await prisma.dream.findUnique({
-      where: { id: dreamId },
+    // Get the dream (ensure it belongs to user)
+    const dream = await prisma.dream.findFirst({
+      where: { id: dreamId, userId: session.user.id },
     });
 
     if (!dream) {
