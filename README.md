@@ -39,17 +39,17 @@ npm run db:migrate --workspace=@dream-analyzer/web
 
 `apps/web/.env.local` を作成:
 
-#### 必須: 認証設定（Google OAuth）
+#### 必須: 認証設定（Auth.js / NextAuth v5）
 
 ```env
-# NextAuth設定
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-here"  # openssl rand -base64 32 で生成
+# Auth.js設定（必須）
+AUTH_SECRET="your-secret-here"  # openssl rand -base64 32 で生成
+AUTH_URL="http://localhost:3000"  # ローカル開発時のみ必要
 
 # Google OAuth
 # https://console.cloud.google.com/apis/credentials で取得
-GOOGLE_CLIENT_ID="xxx.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="xxx"
+AUTH_GOOGLE_ID="xxx.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="xxx"
 ```
 
 **Google OAuth の設定手順:**
@@ -198,10 +198,10 @@ Vercelダッシュボードで以下の環境変数を設定:
 DATABASE_URL="postgresql://..."
 
 # 認証（必須）
-NEXTAUTH_URL="https://your-domain.vercel.app"
-NEXTAUTH_SECRET="openssl rand -base64 32 で生成した値"
-GOOGLE_CLIENT_ID="xxx.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="xxx"
+AUTH_SECRET="openssl rand -base64 32 で生成した値"
+AUTH_GOOGLE_ID="xxx.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="xxx"
+# AUTH_URL は Vercel では自動設定されるため不要
 
 # AI（どちらか必須）
 AI_PROVIDER="anthropic"
