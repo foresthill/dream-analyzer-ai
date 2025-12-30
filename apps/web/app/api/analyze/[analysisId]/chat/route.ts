@@ -1,15 +1,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface RouteParams {
   params: Promise<{ analysisId: string }>;
 }
 
+// Helper to verify analysis belongs to user
+async function verifyAnalysisOwnership(analysisId: string, userId: string) {
+  const analysis = await prisma.dreamAnalysis.findFirst({
+    where: { id: analysisId },
+    include: { dream: { select: { userId: true } } },
+  });
+  return analysis?.dream.userId === userId ? analysis : null;
+}
+
 // GET /api/analyze/[analysisId]/chat - Get conversation history
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { analysisId } = await params;
+
+    // Verify ownership
+    const analysis = await verifyAnalysisOwnership(analysisId, session.user.id);
+    if (!analysis) {
+      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+    }
 
     const conversations = await prisma.analysisConversation.findMany({
       where: { analysisId },
@@ -29,6 +50,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 // POST /api/analyze/[analysisId]/chat - Send a message and get AI response
 export async function POST(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { analysisId } = await params;
     const { message } = await request.json();
 
@@ -39,8 +65,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Get the analysis with dream data
-    const analysis = await prisma.dreamAnalysis.findUnique({
+    // Get the analysis with dream data (verify ownership)
+    const analysis = await prisma.dreamAnalysis.findFirst({
       where: { id: analysisId },
       include: {
         dream: true,
@@ -50,7 +76,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
-    if (!analysis) {
+    if (!analysis || analysis.dream.userId !== session.user.id) {
       return NextResponse.json(
         { error: 'Analysis not found' },
         { status: 404 }
@@ -204,7 +230,18 @@ ${analysisContext}
 // DELETE /api/analyze/[analysisId]/chat - Clear conversation history
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { analysisId } = await params;
+
+    // Verify ownership
+    const analysis = await verifyAnalysisOwnership(analysisId, session.user.id);
+    if (!analysis) {
+      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+    }
 
     await prisma.analysisConversation.deleteMany({
       where: { analysisId },

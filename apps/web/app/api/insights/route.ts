@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 import type { InsightData } from '@dream-analyzer/shared-types';
 
 // GET /api/insights - Get user insights
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const dreams = await prisma.dream.findMany({
+      where: { userId: session.user.id },
       orderBy: { date: 'desc' },
       include: {
         analyses: {

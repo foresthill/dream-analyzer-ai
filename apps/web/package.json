@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@auth/prisma-adapter": "^2.11.1",
     "@dream-analyzer/dream-core": "*",
     "@dream-analyzer/shared-types": "*",
     "@prisma/client": "^6.19.0",

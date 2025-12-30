@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 
 // GET /api/dreamers - List all dreamers
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const dreamers = await prisma.dreamer.findMany({
-      where: { userId: 'default-user' }, // TODO: Get from auth
+      where: { userId: session.user.id },
       orderBy: { name: 'asc' },
       include: {
         _count: {
@@ -37,22 +43,16 @@ export async function GET() {
 // POST /api/dreamers - Create a new dreamer
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Ensure default user exists
-    await prisma.user.upsert({
-      where: { id: 'default-user' },
-      update: {},
-      create: {
-        id: 'default-user',
-        email: 'default@example.com',
-        name: 'Default User',
-      },
-    });
+    const body = await request.json();
 
     const dreamer = await prisma.dreamer.create({
       data: {
-        userId: 'default-user', // TODO: Get from auth
+        userId: session.user.id,
         name: body.name,
         relationship: body.relationship,
         notes: body.notes,

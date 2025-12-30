@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -8,10 +9,15 @@ interface RouteParams {
 // GET /api/dreamers/[id] - Get a specific dreamer
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    const dreamer = await prisma.dreamer.findUnique({
-      where: { id },
+    const dreamer = await prisma.dreamer.findFirst({
+      where: { id, userId: session.user.id },
       include: {
         _count: {
           select: { dreams: true },
@@ -36,8 +42,21 @@ export async function GET(request: Request, { params }: RouteParams) {
 // PATCH /api/dreamers/[id] - Update a dreamer
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
+
+    // Ensure dreamer belongs to user
+    const existing = await prisma.dreamer.findFirst({
+      where: { id, userId: session.user.id },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: 'Dreamer not found' }, { status: 404 });
+    }
 
     const dreamer = await prisma.dreamer.update({
       where: { id },
@@ -61,11 +80,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/dreamers/[id] - Delete a dreamer
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    // Check if dreamer has dreams
-    const dreamerWithCount = await prisma.dreamer.findUnique({
-      where: { id },
+    // Check if dreamer exists and belongs to user
+    const dreamerWithCount = await prisma.dreamer.findFirst({
+      where: { id, userId: session.user.id },
       include: {
         _count: {
           select: { dreams: true },

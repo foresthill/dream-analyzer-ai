@@ -39,6 +39,28 @@ npm run db:migrate --workspace=@dream-analyzer/web
 
 `apps/web/.env.local` を作成:
 
+#### 必須: 認証設定（Auth.js / NextAuth v5）
+
+```env
+# Auth.js設定（必須）
+AUTH_SECRET="your-secret-here"  # openssl rand -base64 32 で生成
+AUTH_URL="http://localhost:3000"  # ローカル開発時のみ必要
+
+# Google OAuth
+# https://console.cloud.google.com/apis/credentials で取得
+AUTH_GOOGLE_ID="xxx.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="xxx"
+```
+
+**Google OAuth の設定手順:**
+1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) にアクセス
+2. 「認証情報を作成」→「OAuth クライアント ID」
+3. 同意画面で「外部」を選択（個人利用の場合）
+4. 承認済みリダイレクト URI に追加:
+   - 開発: `http://localhost:3000/api/auth/callback/google`
+   - 本番: `https://your-domain.com/api/auth/callback/google`
+5. テストユーザーに自分のGmailを追加
+
 #### Option 1: Anthropic直接接続（デフォルト）
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/dream_analyzer"
@@ -164,6 +186,45 @@ npx prisma migrate deploy
 ```
 
 **注意**: `prisma migrate dev` はマイグレーションファイル（`prisma/migrations/`）を作成・保存します。これにより、変更履歴が追跡され、チーム間でのデータベーススキーマの同期が容易になります。
+
+## デプロイ（Vercel）
+
+### 環境変数の設定
+
+Vercelダッシュボードで以下の環境変数を設定:
+
+```env
+# データベース
+DATABASE_URL="postgresql://..."
+
+# 認証（必須）
+AUTH_SECRET="openssl rand -base64 32 で生成した値"
+AUTH_GOOGLE_ID="xxx.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="xxx"
+# AUTH_URL は Vercel では自動設定されるため不要
+
+# AI（どちらか必須）
+AI_PROVIDER="anthropic"
+ANTHROPIC_API_KEY="sk-ant-..."
+# または
+# AI_PROVIDER="openrouter"
+# OPENROUTER_API_KEY="sk-or-..."
+```
+
+### データベースマイグレーション
+
+デプロイ後、初回のみ実行:
+
+```bash
+npx prisma migrate deploy
+```
+
+### Google OAuth リダイレクトURI
+
+本番デプロイ時は、Google Cloud Consoleで以下を追加:
+```
+https://your-domain.vercel.app/api/auth/callback/google
+```
 
 ## ライセンス
 
