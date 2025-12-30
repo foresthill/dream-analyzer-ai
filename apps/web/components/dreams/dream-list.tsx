@@ -1,8 +1,19 @@
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 import { DreamCard } from './dream-card';
 
 export async function DreamList() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return (
+      <div className="rounded-lg border border-border bg-background p-8 text-center">
+        <p className="text-muted-foreground">ログインして夢を記録しましょう</p>
+      </div>
+    );
+  }
+
   const dreams = await prisma.dream.findMany({
+    where: { userId: session.user.id },
     orderBy: { date: 'desc' },
     take: 20,
     include: { analyses: true, dreamer: true },

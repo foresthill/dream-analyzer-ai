@@ -1,10 +1,18 @@
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 import { DreamCalendar } from '@/components/calendar/dream-calendar';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
   const dreams = await prisma.dream.findMany({
+    where: { userId: session.user.id },
     orderBy: { date: 'desc' },
     include: {
       analyses: true,

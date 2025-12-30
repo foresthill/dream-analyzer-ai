@@ -26,6 +26,7 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch existing conversation history
@@ -36,12 +37,21 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
         if (response.ok) {
           const data = await response.json();
           setMessages(data);
+          setError(null);
           if (data.length > 0) {
             setIsExpanded(true);
           }
+        } else if (response.status === 401) {
+          setError('ログインが必要です');
+        } else if (response.status === 403) {
+          const data = await response.json();
+          setError(data.error || 'この分析にアクセスする権限がありません');
+        } else if (response.status === 404) {
+          setError('分析が見つかりません');
         }
-      } catch (error) {
-        console.error('Failed to fetch messages:', error);
+      } catch (err) {
+        console.error('Failed to fetch messages:', err);
+        setError('通信エラーが発生しました');
       }
     };
 
@@ -79,10 +89,20 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          throw new Error('ログインが必要です');
+        } else if (response.status === 403) {
+          throw new Error(data.error || 'この分析にアクセスする権限がありません');
+        } else if (response.status === 404) {
+          throw new Error('分析が見つかりません');
+        } else {
+          throw new Error(data.error || 'メッセージの送信に失敗しました');
+        }
       }
 
       const data = await response.json();
+      setError(null);
 
       // Replace temp messages with actual ones
       setMessages((prev) => [
@@ -90,11 +110,11 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
         data.userMessage,
         data.assistantMessage,
       ]);
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('Error sending message:', err);
       // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
-      alert('メッセージの送信に失敗しました。');
+      setError(err instanceof Error ? err.message : 'メッセージの送信に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -148,8 +168,20 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
 
       {isExpanded && (
         <div className="border-t border-border">
+          {/* Error message */}
+          {error && (
+            <div className="border-b border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {error}
+              </div>
+            </div>
+          )}
+
           {/* Suggestion questions */}
-          {messages.length === 0 && (
+          {messages.length === 0 && !error && (
             <div className="border-b border-border p-4">
               <p className="mb-3 text-sm text-muted-foreground">
                 分析結果について質問したり、より深い解釈を求めることができます:
@@ -234,6 +266,7 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
           )}
 
           {/* Input form */}
+          {!error && (
           <div className="border-t border-border p-4">
             <form onSubmit={handleSubmit} className="flex gap-2">
               <input
@@ -263,6 +296,7 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
               </div>
             )}
           </div>
+          )}
         </div>
       )}
     </div>
