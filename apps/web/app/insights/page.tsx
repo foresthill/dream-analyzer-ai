@@ -1,11 +1,19 @@
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 import { TrendChart } from '@/components/insights/trend-chart';
 import { SymbolFrequency } from '@/components/insights/symbol-frequency';
 
 export const dynamic = 'force-dynamic';
 
 export default async function InsightsPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
   const dreams = await prisma.dream.findMany({
+    where: { userId: session.user.id },
     orderBy: { date: 'desc' },
     take: 100,
     include: {

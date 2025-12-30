@@ -1,9 +1,10 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { DreamDetail } from '@/components/dreams/dream-detail';
 import { AnalysisResult } from '@/components/analysis/analysis-result';
 import { AnalysisChat } from '@/components/analysis/analysis-chat';
 import { AnalyzeButton } from '@/components/dreams/analyze-button';
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,11 @@ interface DreamPageProps {
 }
 
 export default async function DreamPage({ params }: DreamPageProps) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
   const { id } = await params;
 
   const dream = await prisma.dream.findUnique({
@@ -24,6 +30,11 @@ export default async function DreamPage({ params }: DreamPageProps) {
   });
 
   if (!dream) {
+    notFound();
+  }
+
+  // Check ownership - redirect if not owner
+  if (dream.userId !== session.user.id) {
     notFound();
   }
 

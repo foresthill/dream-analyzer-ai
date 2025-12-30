@@ -1,11 +1,21 @@
 import { prisma } from '@/lib/db';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AnalysisPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
   const recentAnalyses = await prisma.dreamAnalysis.findMany({
+    where: {
+      dream: { userId: session.user.id },
+    },
     take: 20,
     orderBy: { analyzedAt: 'desc' },
     include: {
