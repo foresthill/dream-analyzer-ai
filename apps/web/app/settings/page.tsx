@@ -1,18 +1,28 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useSettingsStore, AVAILABLE_MODELS, type AIProvider } from '@/store/settings-store';
 
 export default function SettingsPage() {
-  const { modelConfig, setModelConfig } = useSettingsStore();
+  const { modelConfig, isLoading, isSynced, fetchSettings, saveSettings } = useSettingsStore();
+  const [showSaved, setShowSaved] = useState(false);
 
-  const handleProviderChange = (provider: AIProvider) => {
-    // Set default model for the new provider
+  // ページ読み込み時にサーバーから設定を取得
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleProviderChange = async (provider: AIProvider) => {
     const defaultModel = AVAILABLE_MODELS[provider][0].value;
-    setModelConfig({ provider, model: defaultModel });
+    await saveSettings({ provider, model: defaultModel });
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
   };
 
-  const handleModelChange = (model: string) => {
-    setModelConfig({ ...modelConfig, model });
+  const handleModelChange = async (model: string) => {
+    await saveSettings({ ...modelConfig, model });
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
   };
 
   return (
@@ -24,9 +34,17 @@ export default function SettingsPage() {
 
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-background p-6">
-          <h2 className="mb-4 text-lg font-semibold">AI モデル設定</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">AI モデル設定</h2>
+            {isLoading && (
+              <span className="text-sm text-muted-foreground">読み込み中...</span>
+            )}
+            {showSaved && !isLoading && (
+              <span className="text-sm text-green-600">保存しました</span>
+            )}
+          </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            夢分析に使用するAIモデルを選択してください
+            夢分析に使用するAIモデルを選択してください（設定はアカウントに保存されます）
           </p>
 
           <div className="space-y-4">
@@ -38,7 +56,8 @@ export default function SettingsPage() {
                 id="provider"
                 value={modelConfig.provider}
                 onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2"
+                disabled={isLoading}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 disabled:opacity-50"
               >
                 <option value="anthropic">Anthropic (Claude)</option>
                 <option value="openrouter">OpenRouter (複数モデル対応)</option>
@@ -58,7 +77,8 @@ export default function SettingsPage() {
                 id="model"
                 value={modelConfig.model}
                 onChange={(e) => handleModelChange(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2"
+                disabled={isLoading}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 disabled:opacity-50"
               >
                 {AVAILABLE_MODELS[modelConfig.provider].map((model) => (
                   <option key={model.value} value={model.value}>
@@ -73,8 +93,7 @@ export default function SettingsPage() {
 
             <div className="rounded-md bg-secondary p-3">
               <p className="text-sm">
-                💡 <strong>ヒント:</strong> 異なるモデルを試して、どのモデルが最も良い分析結果を提供するか比較できます。
-                分析結果には使用されたモデルが記録されます。
+                この設定はあなたのアカウントに保存され、どのデバイスからでも同じ設定が使用されます。
               </p>
             </div>
           </div>
