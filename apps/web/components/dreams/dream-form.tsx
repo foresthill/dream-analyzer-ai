@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { DreamMood, CreateDreamInput } from '@dream-analyzer/shared-types';
 import Link from 'next/link';
+import { VoiceInputButton } from '@/components/voice/voice-input-button';
 
 const MOOD_OPTIONS: { value: DreamMood; label: string }[] = [
   { value: 'joyful', label: '喜び' },
@@ -173,14 +174,22 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
       </div>
 
       <div>
-        <label htmlFor="content" className="mb-1 block text-sm font-medium">
-          夢の内容
-        </label>
+        <div className="mb-2 flex items-center justify-between">
+          <label htmlFor="content" className="block text-sm font-medium">
+            夢の内容
+          </label>
+          <VoiceInputButton
+            value={content}
+            onValueChange={setContent}
+            appendMode={true}
+            disabled={isSubmitting}
+          />
+        </div>
         <textarea
           id="content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="できるだけ詳しく記録してください..."
+          placeholder="できるだけ詳しく記録してください... または上のマイクボタンで音声入力"
           rows={8}
           required
           className="w-full rounded-md border border-border bg-background px-3 py-2"
