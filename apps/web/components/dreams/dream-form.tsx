@@ -181,7 +181,6 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           <VoiceInputButton
             value={content}
             onValueChange={setContent}
-            appendMode={true}
             disabled={isSubmitting}
           />
         </div>
