@@ -1,11 +1,35 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { LayoutWrapper } from '@/components/layout/layout-wrapper';
 import { Providers } from '@/components/providers';
 
 export const metadata: Metadata = {
-  title: 'Dream Analyzer - AI夢診断アプリ',
+  title: '夢分析AI - Dream Analyzer',
   description: '夢の内容を記録・分析し、心理学的・象徴的な解釈を提供するアプリケーション',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: '夢分析AI',
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#312e81',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

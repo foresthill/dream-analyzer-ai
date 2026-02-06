@@ -1,16 +1,14 @@
 'use client';
 
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/use-voice-input';
-import { useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 
 interface VoiceInputButtonProps {
   /** 現在のテキスト値 */
   value: string;
   /** テキストが変更されたときのコールバック */
   onValueChange: (value: string) => void;
-  /** 追加モード（既存テキストに追加） */
-  appendMode?: boolean;
   /** カスタムクラス */
   className?: string;
   /** 無効状態 */
@@ -20,61 +18,45 @@ interface VoiceInputButtonProps {
 export function VoiceInputButton({
   value,
   onValueChange,
-  appendMode = true,
   className = '',
   disabled = false,
 }: VoiceInputButtonProps) {
-  const handleResult = useCallback(
-    (transcript: string, isFinal: boolean) => {
-      if (appendMode && value) {
-        // 既存テキストがある場合は追加
-        const separator = value.endsWith('\n') || value.endsWith(' ') ? '' : ' ';
-        onValueChange(value + separator + transcript);
-      } else {
-        onValueChange(transcript);
-      }
-    },
-    [value, onValueChange, appendMode]
-  );
+  // 録音開始時のテキストを保持
+  const baseTextRef = useRef('');
 
   const {
     isListening,
     transcript,
     interimTranscript,
     isSupported,
-    toggleListening,
+    startListening,
+    stopListening,
     resetTranscript,
     error,
   } = useVoiceInput({
     language: 'ja-JP',
     continuous: true,
     interimResults: true,
+    onResult: (text, isFinal) => {
+      // ベーステキスト + 認識結果を表示
+      const separator = baseTextRef.current && !baseTextRef.current.endsWith(' ') ? ' ' : '';
+      onValueChange(baseTextRef.current + separator + text);
+    },
   });
 
-  // 認識結果をフォームに反映
-  useEffect(() => {
-    if (transcript || interimTranscript) {
-      const currentText = transcript + interimTranscript;
-      if (appendMode && value && !value.includes(currentText)) {
-        const baseText = value.replace(/\s+$/, '');
-        const separator = baseText ? ' ' : '';
-        onValueChange(baseText + separator + currentText);
-      } else if (!appendMode) {
-        onValueChange(currentText);
-      }
+  const handleToggle = () => {
+    if (isListening) {
+      stopListening();
+      // 停止時にベーステキストを更新（次回の録音用）
+      baseTextRef.current = value;
+      resetTranscript();
+    } else {
+      // 録音開始時の現在値を保存
+      baseTextRef.current = value;
+      resetTranscript();
+      startListening();
     }
-  }, [transcript, interimTranscript, appendMode, value, onValueChange]);
-
-  // 録音停止時にリセット
-  useEffect(() => {
-    if (!isListening && (transcript || interimTranscript)) {
-      // 少し待ってからリセット（最終結果を確実に反映）
-      const timer = setTimeout(() => {
-        resetTranscript();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isListening, transcript, interimTranscript, resetTranscript]);
+  };
 
   if (!isSupported) {
     return (
@@ -93,7 +75,7 @@ export function VoiceInputButton({
     <div className="relative inline-flex items-center gap-2">
       <button
         type="button"
-        onClick={toggleListening}
+        onClick={handleToggle}
         disabled={disabled}
         className={`
           inline-flex items-center justify-center rounded-full p-3 transition-all
@@ -107,11 +89,7 @@ export function VoiceInputButton({
         title={isListening ? '録音を停止' : '音声で入力'}
         aria-label={isListening ? '録音を停止' : '音声で入力'}
       >
-        {isListening ? (
-          <Mic className="h-5 w-5" />
-        ) : (
-          <Mic className="h-5 w-5" />
-        )}
+        <Mic className="h-5 w-5" />
       </button>
 
       {/* 録音中インジケーター */}
