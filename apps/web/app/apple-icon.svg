@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b"/>
+      <stop offset="100%" style="stop-color:#312e81"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef3c7"/>
+      <stop offset="100%" style="stop-color:#fcd34d"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Stars -->
+  <circle cx="120" cy="100" r="8" fill="#e0e7ff" opacity="0.8"/>
+  <circle cx="380" cy="80" r="6" fill="#e0e7ff" opacity="0.6"/>
+  <circle cx="420" cy="180" r="5" fill="#e0e7ff" opacity="0.7"/>
+  <circle cx="90" cy="250" r="7" fill="#e0e7ff" opacity="0.5"/>
+  <circle cx="150" cy="380" r="6" fill="#e0e7ff" opacity="0.6"/>
+  <circle cx="400" cy="350" r="8" fill="#e0e7ff" opacity="0.7"/>
+  <!-- Sparkles -->
+  <path d="M340 120 L345 130 L355 135 L345 140 L340 150 L335 140 L325 135 L335 130 Z" fill="#fef3c7" opacity="0.9"/>
+  <path d="M440 280 L443 287 L450 290 L443 293 L440 300 L437 293 L430 290 L437 287 Z" fill="#fef3c7" opacity="0.7"/>
+  <!-- Moon crescent -->
+  <circle cx="256" cy="256" r="140" fill="url(#moon)"/>
+  <circle cx="310" cy="210" r="110" fill="url(#bg)"/>
+  <!-- Z letters (sleep/dream symbol) -->
+  <text x="180" y="420" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#a5b4fc" opacity="0.9">Z</text>
+  <text x="260" y="380" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="#a5b4fc" opacity="0.7">z</text>
+  <text x="320" y="350" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#a5b4fc" opacity="0.5">z</text>
+</svg>
