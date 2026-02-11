@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
+import { ShareButton } from '@/components/sharing/share-button';
 
 interface Dream {
   id: string;
@@ -222,19 +223,25 @@ export default function DreamersPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() =>
-                      handleDelete(
-                        dreamer.id,
-                        dreamer.name,
-                        dreamer._count?.dreams || 0
-                      )
-                    }
-                    className="text-sm text-red-500 hover:text-red-700"
-                    disabled={(dreamer._count?.dreams || 0) > 0}
-                  >
-                    {(dreamer._count?.dreams || 0) > 0 ? '削除不可' : '削除'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <ShareButton
+                      dreamerId={dreamer.id}
+                      targetLabel={`${dreamer.name}さんの夢日記`}
+                    />
+                    <button
+                      onClick={() =>
+                        handleDelete(
+                          dreamer.id,
+                          dreamer.name,
+                          dreamer._count?.dreams || 0
+                        )
+                      }
+                      className="text-sm text-red-500 hover:text-red-700"
+                      disabled={(dreamer._count?.dreams || 0) > 0}
+                    >
+                      {(dreamer._count?.dreams || 0) > 0 ? '削除不可' : '削除'}
+                    </button>
+                  </div>
                 </div>
               </div>
 

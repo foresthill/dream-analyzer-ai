@@ -22,6 +22,7 @@ model User {
   sessions  Session[]
   dreams    Dream[]
   dreamers  Dreamer[]
+  shares    DreamShare[] // 自分が作成した共有
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,6 +78,7 @@ model Dreamer {
   notes        String? @db.Text // メモ
 
   dreams       Dream[]
+  shares       DreamShare[] // このドリーマーへの共有
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -118,6 +120,9 @@ model Dream {
   // 分析
   analyzed  Boolean        @default(false)
   analyses  DreamAnalysis[]
+
+  // 共有
+  shares    DreamShare[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,4 +186,41 @@ model AnalysisConversation {
   createdAt  DateTime @default(now())
 
   @@index([analysisId])
+}
+
+// 共有設定
+enum ShareType {
+  EMAIL // 特定のメールアドレスと共有
+  LINK  // リンクを知っている人と共有
+}
+
+model DreamShare {
+  id      String @id @default(cuid())
+
+  // 共有元（オーナー）
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // 共有対象（どちらか一方を指定）
+  dreamId   String?  // 単一の夢を共有
+  dream     Dream?   @relation(fields: [dreamId], references: [id], onDelete: Cascade)
+  dreamerId String?  // ドリーマーの全ての夢を共有
+  dreamer   Dreamer? @relation(fields: [dreamerId], references: [id], onDelete: Cascade)
+
+  // 共有タイプ
+  shareType ShareType
+
+  // EMAIL共有の場合：共有先のメールアドレス
+  sharedWithEmail String?
+
+  // LINK共有の場合：ユニークなトークン
+  shareToken String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([dreamId])
+  @@index([dreamerId])
+  @@index([sharedWithEmail])
 }

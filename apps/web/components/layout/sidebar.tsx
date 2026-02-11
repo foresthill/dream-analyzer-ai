@@ -12,6 +12,7 @@ const navigation = [
   { name: 'インサイト', href: '/insights', icon: '📊' },
   { name: 'シンボル辞典', href: '/symbols', icon: '📖' },
   { name: '夢を見た人', href: '/dreamers', icon: '👥' },
+  { name: '共有された夢', href: '/shared/with-me', icon: '🔗' },
   { name: '設定', href: '/settings', icon: '⚙️' },
 ];
 
