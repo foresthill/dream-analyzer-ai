@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import type { DreamMood, CreateDreamInput } from '@dream-analyzer/shared-types';
 import Link from 'next/link';
 import { VoiceInputButton } from '@/components/voice/voice-input-button';
+import { ChevronDown, ChevronUp, Sparkles, Save } from 'lucide-react';
 
 const MOOD_OPTIONS: { value: DreamMood; label: string }[] = [
   { value: 'joyful', label: '喜び' },
@@ -24,7 +25,7 @@ interface Dreamer {
 }
 
 interface DreamFormProps {
-  onSubmit: (dream: CreateDreamInput & { dreamerId: string }) => void;
+  onSubmit: (dream: CreateDreamInput & { dreamerId: string }, startAnalysis: boolean) => void;
   isSubmitting?: boolean;
 }
 
@@ -35,10 +36,8 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  // JSTで今日の日付を取得
   const [date, setDate] = useState(() => {
     const now = new Date();
-    // JSTはUTC+9なので、9時間を加算してからUTC日付を取得
     const jstOffset = 9 * 60 * 60 * 1000;
     const jstTime = new Date(now.getTime() + jstOffset);
     return jstTime.toISOString().split('T')[0];
@@ -50,6 +49,9 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
   const [setting, setSetting] = useState('');
   const [characters, setCharacters] = useState('');
   const [emotions, setEmotions] = useState('');
+
+  // オプション項目の開閉状態
+  const [showOptions, setShowOptions] = useState(false);
 
   useEffect(() => {
     const fetchDreamers = async () => {
@@ -70,7 +72,17 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
     fetchDreamers();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateTitle = () => {
+    // 内容の最初の20文字をタイトルにする
+    if (content.trim()) {
+      const firstLine = content.trim().split('\n')[0];
+      return firstLine.slice(0, 20) + (firstLine.length > 20 ? '...' : '');
+    }
+    // 日付ベースのタイトル
+    return `${date}の夢`;
+  };
+
+  const handleSubmit = (e: React.FormEvent, startAnalysis: boolean) => {
     e.preventDefault();
 
     if (!dreamerId) {
@@ -78,9 +90,17 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
       return;
     }
 
+    if (!content.trim()) {
+      alert('夢の内容を入力してください');
+      return;
+    }
+
+    // タイトルが空の場合は自動生成
+    const finalTitle = title.trim() || generateTitle();
+
     onSubmit({
       dreamerId,
-      title,
+      title: finalTitle,
       content,
       date: new Date(date),
       mood,
@@ -90,7 +110,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
       setting: setting || undefined,
       characters: characters ? characters.split(',').map((s) => s.trim()) : undefined,
       emotions: emotions ? emotions.split(',').map((s) => s.trim()) : undefined,
-    });
+    }, startAnalysis);
   };
 
   if (loading) {
@@ -114,8 +134,31 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Dreamer selection */}
+    <form className="space-y-6">
+      {/* 1. 夢の内容（一番上） */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <label htmlFor="content" className="block text-sm font-medium">
+            夢の内容 <span className="text-red-500">*</span>
+          </label>
+          <VoiceInputButton
+            value={content}
+            onValueChange={setContent}
+            disabled={isSubmitting}
+          />
+        </div>
+        <textarea
+          id="content"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="夢の内容を話すか入力してください..."
+          rows={8}
+          required
+          className="w-full rounded-md border border-border bg-background px-3 py-2"
+        />
+      </div>
+
+      {/* 2. 夢を見た人 */}
       <div>
         <label htmlFor="dreamer" className="mb-1 block text-sm font-medium">
           夢を見た人 <span className="text-red-500">*</span>
@@ -144,168 +187,188 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
         </div>
       </div>
 
+      {/* 3. タイトル（任意） */}
       <div>
         <label htmlFor="title" className="mb-1 block text-sm font-medium">
-          夢のタイトル
+          タイトル（任意）
         </label>
         <input
           id="title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例: 空を飛ぶ夢"
-          required
+          placeholder="空欄の場合は自動で生成されます"
           className="w-full rounded-md border border-border bg-background px-3 py-2"
         />
       </div>
 
+      {/* 4. 日付 */}
       <div>
         <label htmlFor="date" className="mb-1 block text-sm font-medium">
-          日付 <span className="text-red-500">*</span>
+          日付
         </label>
         <input
           id="date"
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          required
           className="w-full rounded-md border border-border bg-background px-3 py-2"
         />
       </div>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <label htmlFor="content" className="block text-sm font-medium">
-            夢の内容
-          </label>
-          <VoiceInputButton
-            value={content}
-            onValueChange={setContent}
-            disabled={isSubmitting}
-          />
-        </div>
-        <textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="できるだけ詳しく記録してください... または上のマイクボタンで音声入力"
-          rows={8}
-          required
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="mood" className="mb-1 block text-sm font-medium">
-          全体的な気分
-        </label>
-        <select
-          id="mood"
-          value={mood}
-          onChange={(e) => setMood(e.target.value as DreamMood)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
+      {/* オプション項目（トグル） */}
+      <div className="rounded-lg border border-border">
+        <button
+          type="button"
+          onClick={() => setShowOptions(!showOptions)}
+          className="flex w-full items-center justify-between p-4 text-left hover:bg-accent/50"
         >
-          {MOOD_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          <span className="text-sm font-medium text-muted-foreground">
+            その他のオプション（気分、明晰度など）
+          </span>
+          {showOptions ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {showOptions && (
+          <div className="space-y-4 border-t border-border p-4">
+            {/* 気分 */}
+            <div>
+              <label htmlFor="mood" className="mb-1 block text-sm font-medium">
+                全体的な気分
+              </label>
+              <select
+                id="mood"
+                value={mood}
+                onChange={(e) => setMood(e.target.value as DreamMood)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              >
+                {MOOD_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* スライダー */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  明晰度: {lucidity}
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={lucidity}
+                  onChange={(e) => setLucidity(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  鮮明度: {vividness}
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={vividness}
+                  onChange={(e) => setVividness(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  感情の強さ: {emotionalIntensity}
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={emotionalIntensity}
+                  onChange={(e) => setEmotionalIntensity(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* テキスト項目 */}
+            <div>
+              <label htmlFor="setting" className="mb-1 block text-sm font-medium">
+                場所・環境
+              </label>
+              <input
+                id="setting"
+                type="text"
+                value={setting}
+                onChange={(e) => setSetting(e.target.value)}
+                placeholder="例: 森の中、海辺"
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="characters" className="mb-1 block text-sm font-medium">
+                登場人物（カンマ区切り）
+              </label>
+              <input
+                id="characters"
+                type="text"
+                value={characters}
+                onChange={(e) => setCharacters(e.target.value)}
+                placeholder="例: 母親, 友人, 見知らぬ人"
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="emotions" className="mb-1 block text-sm font-medium">
+                感じた感情（カンマ区切り）
+              </label>
+              <input
+                id="emotions"
+                type="text"
+                value={emotions}
+                onChange={(e) => setEmotions(e.target.value)}
+                placeholder="例: 驚き, 安心, 緊張"
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            明晰度: {lucidity}
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={lucidity}
-            onChange={(e) => setLucidity(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
+      {/* ボタン */}
+      <div className="space-y-3">
+        {/* メインボタン: 保存してAI解析 */}
+        <button
+          type="button"
+          onClick={(e) => handleSubmit(e, true)}
+          disabled={isSubmitting}
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Sparkles className="h-4 w-4" />
+          {isSubmitting ? '処理中...' : '保存してAI解析を開始'}
+        </button>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            鮮明度: {vividness}
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={vividness}
-            onChange={(e) => setVividness(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            感情の強さ: {emotionalIntensity}
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={emotionalIntensity}
-            onChange={(e) => setEmotionalIntensity(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
+        {/* サブボタン: 保存のみ */}
+        <button
+          type="button"
+          onClick={(e) => handleSubmit(e, false)}
+          disabled={isSubmitting}
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50"
+        >
+          <Save className="h-4 w-4" />
+          保存のみ
+        </button>
       </div>
-
-      <div>
-        <label htmlFor="setting" className="mb-1 block text-sm font-medium">
-          場所・環境（任意）
-        </label>
-        <input
-          id="setting"
-          type="text"
-          value={setting}
-          onChange={(e) => setSetting(e.target.value)}
-          placeholder="例: 森の中、海辺"
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="characters" className="mb-1 block text-sm font-medium">
-          登場人物（任意、カンマ区切り）
-        </label>
-        <input
-          id="characters"
-          type="text"
-          value={characters}
-          onChange={(e) => setCharacters(e.target.value)}
-          placeholder="例: 母親, 友人, 見知らぬ人"
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="emotions" className="mb-1 block text-sm font-medium">
-          感じた感情（任意、カンマ区切り）
-        </label>
-        <input
-          id="emotions"
-          type="text"
-          value={emotions}
-          onChange={(e) => setEmotions(e.target.value)}
-          placeholder="例: 驚き, 安心, 緊張"
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
-        {isSubmitting ? '記録中...' : '夢を記録して分析'}
-      </button>
     </form>
   );
 }
