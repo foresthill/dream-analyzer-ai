@@ -6,6 +6,18 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 認証不要なパス（共有ページ）
+  const publicPaths = ['/shared/'];
+  const isPublicPath = publicPaths.some(
+    (path) => pathname === path || pathname.startsWith(path)
+  );
+
+  // 共有ページ（トークン付き）は認証不要で通す
+  // ただし /shared/with-me は認証が必要
+  if (isPublicPath && !pathname.startsWith('/shared/with-me')) {
+    return NextResponse.next();
+  }
+
   // 認証が必要なパス
   const protectedPaths = [
     '/dreams/new',
@@ -15,6 +27,7 @@ export function middleware(request: NextRequest) {
     '/insights',
     '/dreamers',
     '/settings',
+    '/shared/with-me',
   ];
 
   // セッショントークンの確認（cookieベース）

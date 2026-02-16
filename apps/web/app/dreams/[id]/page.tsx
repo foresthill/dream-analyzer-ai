@@ -3,6 +3,7 @@ import { DreamDetail } from '@/components/dreams/dream-detail';
 import { AnalysisResult } from '@/components/analysis/analysis-result';
 import { AnalysisChat } from '@/components/analysis/analysis-chat';
 import { AnalyzeButton } from '@/components/dreams/analyze-button';
+import { ShareButton } from '@/components/sharing/share-button';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 
@@ -41,6 +42,11 @@ export default async function DreamPage({ params }: DreamPageProps) {
   return (
     <div className="space-y-8">
       <DreamDetail dream={dream} />
+
+      {/* Share button */}
+      <div className="flex justify-end">
+        <ShareButton dreamId={dream.id} targetLabel={dream.title} />
+      </div>
 
       {/* Analysis control */}
       <div className="rounded-lg border border-border bg-card p-6">
