@@ -27,8 +27,7 @@ export function middleware(request: NextRequest) {
     '/insights',
     '/dreamers',
     '/settings',
-    '/shared/with-me',
-    '/shared/by-me',
+    '/shared',
   ];
 
   // セッショントークンの確認（cookieベース）

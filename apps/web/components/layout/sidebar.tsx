@@ -12,8 +12,7 @@ const navigation = [
   { name: 'インサイト', href: '/insights', icon: '📊' },
   { name: 'シンボル辞典', href: '/symbols', icon: '📖' },
   { name: '夢を見た人', href: '/dreamers', icon: '👥' },
-  { name: '共有された夢', href: '/shared/with-me', icon: '🔗' },
-  { name: '共有した夢', href: '/shared/by-me', icon: '📤' },
+  { name: '共有', href: '/shared', icon: '🔗' },
   { name: '設定', href: '/settings', icon: '⚙️' },
 ];
 
@@ -40,7 +39,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           href={item.href}
           className={cn(
             'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
-            pathname === item.href
+            pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
               ? 'bg-secondary text-foreground'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
           )}
