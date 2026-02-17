@@ -62,7 +62,7 @@ export default async function InsightsPage() {
   const topSymbols = Array.from(symbolCounts.entries())
     .map(([symbol, count]) => ({ symbol, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 20);
 
   return (
     <div className="space-y-8">
