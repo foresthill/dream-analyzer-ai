@@ -40,7 +40,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             href={item.href}
             className={cn(
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
-              pathname === item.href
+              pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
                 ? 'bg-secondary text-foreground'
                 : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
             )}
@@ -52,14 +52,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       </div>
       <div className="border-t border-border pt-3">
         <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
-            pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-              ? 'bg-secondary text-foreground'
-              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-          )}
           href="/terms"
           className="flex items-center gap-3 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
         >
