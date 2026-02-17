@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { getMoodLabel } from '@dream-analyzer/dream-core';
 import type { DreamMood } from '@dream-analyzer/shared-types';
 import { cn } from '@/lib/utils';
+import { ShareDialog } from '@/components/sharing/share-dialog';
 
 // ===== 型定義 =====
 
@@ -375,23 +377,25 @@ function SentTab() {
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [settingsFor, setSettingsFor] = useState<SharedByMeItem | null>(null);
+
+  const fetchShares = useCallback(async () => {
+    try {
+      const res = await fetch('/api/shares');
+      if (res.ok) {
+        const data = await res.json();
+        setShares(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch shares:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function fetchShares() {
-      try {
-        const res = await fetch('/api/shares');
-        if (res.ok) {
-          const data = await res.json();
-          setShares(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch shares:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchShares();
-  }, []);
+  }, [fetchShares]);
 
   async function revokeShare(id: string) {
     setRevokingId(id);
@@ -427,73 +431,106 @@ function SentTab() {
   }
 
   return (
-    <div className="space-y-4">
-      {shares.map((share) => (
-        <div
-          key={share.id}
-          className="rounded-lg border border-border bg-card p-6"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              {/* 共有対象 */}
-              {share.dream && (
-                <div>
-                  <h3 className="font-semibold">{share.dream.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    夢 - {formatDate(new Date(share.dream.date))}
-                  </p>
-                </div>
-              )}
-              {share.dreamer && (
-                <div>
-                  <h3 className="font-semibold">{share.dreamer.name}さんの夢日記</h3>
-                  <p className="text-sm text-muted-foreground">ドリーマー共有</p>
-                </div>
-              )}
+    <>
+      <div className="space-y-4">
+        {shares.map((share) => (
+          <div
+            key={share.id}
+            className="rounded-lg border border-border bg-card p-6"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                {/* 共有対象（クリックで詳細へ） */}
+                {share.dream && (
+                  <div>
+                    <Link
+                      href={`/dreams/${share.dream.id}`}
+                      className="font-semibold text-foreground hover:text-primary hover:underline"
+                    >
+                      {share.dream.title}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      夢 - {formatDate(new Date(share.dream.date))}
+                    </p>
+                  </div>
+                )}
+                {share.dreamer && (
+                  <div>
+                    <Link
+                      href="/dreamers"
+                      className="font-semibold text-foreground hover:text-primary hover:underline"
+                    >
+                      {share.dreamer.name}さんの夢日記
+                    </Link>
+                    <p className="text-sm text-muted-foreground">ドリーマー共有</p>
+                  </div>
+                )}
 
-              {/* 共有方法 */}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span
-                  className={
-                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' +
-                    (share.shareType === 'EMAIL'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300')
-                  }
-                >
-                  {share.shareType === 'EMAIL' ? 'メール共有' : 'リンク共有'}
-                </span>
-                {share.sharedWithEmail && (
-                  <span className="text-sm text-muted-foreground">
-                    → {share.sharedWithEmail}
-                  </span>
-                )}
-                {share.shareToken && (
-                  <button
-                    onClick={() => copyLink(share.shareToken!, share.id)}
-                    className="text-sm text-primary hover:underline"
+                {/* 共有方法 */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span
+                    className={
+                      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ' +
+                      (share.shareType === 'EMAIL'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300')
+                    }
                   >
-                    {copiedId === share.id ? 'コピーしました!' : 'リンクをコピー'}
-                  </button>
-                )}
+                    {share.shareType === 'EMAIL' ? 'メール共有' : 'リンク共有'}
+                  </span>
+                  {share.sharedWithEmail && (
+                    <span className="text-sm text-muted-foreground">
+                      → {share.sharedWithEmail}
+                    </span>
+                  )}
+                  {share.shareToken && (
+                    <button
+                      onClick={() => copyLink(share.shareToken!, share.id)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      {copiedId === share.id ? 'コピーしました!' : 'リンクをコピー'}
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {formatDate(new Date(share.createdAt))} に共有
+                </p>
               </div>
 
-              <p className="mt-2 text-xs text-muted-foreground">
-                {formatDate(new Date(share.createdAt))} に共有
-              </p>
+              {/* アクションボタン */}
+              <div className="ml-4 flex shrink-0 flex-col gap-2">
+                <button
+                  onClick={() => setSettingsFor(share)}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary transition-colors"
+                >
+                  共有設定
+                </button>
+                <button
+                  onClick={() => revokeShare(share.id)}
+                  disabled={revokingId === share.id}
+                  className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  {revokingId === share.id ? '解除中...' : '共有解除'}
+                </button>
+              </div>
             </div>
-
-            {/* 共有解除ボタン */}
-            <button
-              onClick={() => revokeShare(share.id)}
-              disabled={revokingId === share.id}
-              className="ml-4 shrink-0 rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-            >
-              {revokingId === share.id ? '解除中...' : '共有解除'}
-            </button>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* 共有設定ダイアログ */}
+      <ShareDialog
+        open={settingsFor !== null}
+        onOpenChange={(open) => { if (!open) setSettingsFor(null); }}
+        dreamId={settingsFor?.dreamId ?? undefined}
+        dreamerId={settingsFor?.dreamerId ?? undefined}
+        targetLabel={
+          settingsFor?.dream?.title
+            ?? (settingsFor?.dreamer ? `${settingsFor.dreamer.name}さんの夢日記` : '')
+        }
+        onShareChange={fetchShares}
+      />
+    </>
   );
 }

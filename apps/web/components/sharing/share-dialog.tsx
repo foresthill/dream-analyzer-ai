@@ -11,6 +11,7 @@ interface ShareDialogProps {
   dreamId?: string;
   dreamerId?: string;
   targetLabel: string; // 表示名（例: "夢のタイトル" or "○○さんの夢日記"）
+  onShareChange?: () => void; // 共有状態が変更された時のコールバック
 }
 
 interface ExistingShare {
@@ -23,7 +24,7 @@ interface ExistingShare {
   createdAt: string;
 }
 
-export function ShareDialog({ open, onOpenChange, dreamId, dreamerId, targetLabel }: ShareDialogProps) {
+export function ShareDialog({ open, onOpenChange, dreamId, dreamerId, targetLabel, onShareChange }: ShareDialogProps) {
   const [activeTab, setActiveTab] = useState('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -83,6 +84,7 @@ export function ShareDialog({ open, onOpenChange, dreamId, dreamerId, targetLabe
         setMessage({ type: 'success', text: `${email} に共有しました` });
         setEmail('');
         fetchExistingShares();
+        onShareChange?.();
       } else {
         const data = await res.json();
         setMessage({ type: 'error', text: data.error || '共有に失敗しました' });
@@ -113,6 +115,7 @@ export function ShareDialog({ open, onOpenChange, dreamId, dreamerId, targetLabe
         const share = await res.json();
         setLinkShare(share);
         setMessage({ type: 'success', text: '共有リンクを作成しました' });
+        onShareChange?.();
       } else {
         const data = await res.json();
         setMessage({ type: 'error', text: data.error || 'リンクの作成に失敗しました' });
@@ -132,6 +135,7 @@ export function ShareDialog({ open, onOpenChange, dreamId, dreamerId, targetLabe
         if (linkShare?.id === shareId) {
           setLinkShare(null);
         }
+        onShareChange?.();
       }
     } catch {
       // ignore
