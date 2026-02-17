@@ -2,11 +2,13 @@
 
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import Link from 'next/link';
+import { Suspense, useState } from 'react';
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const [agreed, setAgreed] = useState(false);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -19,9 +21,25 @@ function LoginContent() {
         </div>
 
         <div className="space-y-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            />
+            <span className="text-sm text-muted-foreground">
+              <Link href="/terms" className="text-primary underline hover:text-primary/80">
+                利用規約
+              </Link>
+              に同意する
+            </span>
+          </label>
+
           <button
             onClick={() => signIn('google', { callbackUrl })}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50"
+            disabled={!agreed}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
