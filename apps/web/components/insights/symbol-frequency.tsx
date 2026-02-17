@@ -1,15 +1,5 @@
 'use client';
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-
 interface SymbolFrequencyProps {
   symbols: Array<{ symbol: string; count: number }>;
 }
@@ -23,20 +13,37 @@ export function SymbolFrequency({ symbols }: SymbolFrequencyProps) {
     );
   }
 
+  const maxCount = Math.max(...symbols.map((s) => s.count));
+  const minCount = Math.min(...symbols.map((s) => s.count));
+  const range = maxCount - minCount || 1;
+
+  // 出現回数に応じてフォントサイズ (0.75rem〜2.25rem) を決定
+  const getFontSize = (count: number) => {
+    const ratio = (count - minCount) / range;
+    return 0.75 + ratio * 1.5;
+  };
+
+  // 出現回数に応じて透明度 (0.5〜1.0) を決定
+  const getOpacity = (count: number) => {
+    const ratio = (count - minCount) / range;
+    return 0.5 + ratio * 0.5;
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={symbols} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis type="number" fontSize={12} />
-        <YAxis
-          dataKey="symbol"
-          type="category"
-          width={80}
-          fontSize={12}
-        />
-        <Tooltip />
-        <Bar dataKey="count" fill="#6366f1" name="出現回数" />
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="flex min-h-[12rem] flex-wrap items-center justify-center gap-x-3 gap-y-2 py-4">
+      {symbols.map(({ symbol, count }) => (
+        <span
+          key={symbol}
+          className="inline-block cursor-default rounded-md px-1.5 py-0.5 font-medium text-primary transition-transform hover:scale-110"
+          style={{
+            fontSize: `${getFontSize(count)}rem`,
+            opacity: getOpacity(count),
+          }}
+          title={`${symbol}: ${count}回`}
+        >
+          {symbol}
+        </span>
+      ))}
+    </div>
   );
 }
