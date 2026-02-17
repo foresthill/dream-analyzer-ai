@@ -32,8 +32,25 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   }, [pathname]);
 
   const navContent = (
-    <nav className="space-y-1 p-4">
-      {navigation.map((item) => (
+    <nav className="flex h-full flex-col justify-between p-4">
+      <div className="space-y-1">
+        {navigation.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              'flex items-center gap-3 rounded-md px-3 py-2 text-sm',
+              pathname === item.href
+                ? 'bg-secondary text-foreground'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+            )}
+          >
+            <span>{item.icon}</span>
+            {item.name}
+          </Link>
+        ))}
+      </div>
+      <div className="border-t border-border pt-3">
         <Link
           key={item.href}
           href={item.href}
@@ -43,11 +60,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               ? 'bg-secondary text-foreground'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
           )}
+          href="/terms"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
         >
-          <span>{item.icon}</span>
-          {item.name}
+          利用規約
         </Link>
-      ))}
+      </div>
     </nav>
   );
 
