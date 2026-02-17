@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
 
   // 共有ページ（トークン付き）は認証不要で通す
   // ただし /shared/with-me は認証が必要
-  if (isPublicPath && !pathname.startsWith('/shared/with-me')) {
+  if (isPublicPath && !pathname.startsWith('/shared/with-me') && !pathname.startsWith('/shared/by-me')) {
     return NextResponse.next();
   }
 
@@ -28,6 +28,7 @@ export function middleware(request: NextRequest) {
     '/dreamers',
     '/settings',
     '/shared/with-me',
+    '/shared/by-me',
   ];
 
   // セッショントークンの確認（cookieベース）

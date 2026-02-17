@@ -13,6 +13,7 @@ const navigation = [
   { name: 'シンボル辞典', href: '/symbols', icon: '📖' },
   { name: '夢を見た人', href: '/dreamers', icon: '👥' },
   { name: '共有された夢', href: '/shared/with-me', icon: '🔗' },
+  { name: '共有した夢', href: '/shared/by-me', icon: '📤' },
   { name: '設定', href: '/settings', icon: '⚙️' },
 ];
 
