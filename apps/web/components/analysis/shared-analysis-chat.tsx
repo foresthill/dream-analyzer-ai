@@ -12,18 +12,19 @@ interface Message {
   createdAt: string;
 }
 
-interface AnalysisChatProps {
+interface SharedAnalysisChatProps {
   analysisId: string;
+  shareToken?: string; // リンク共有の場合
 }
 
 const SUGGESTION_QUESTIONS = [
-  'この夢が示唆する私の深層心理は？',
+  'この夢が示唆する深層心理は？',
   'この夢のシンボルについてもっと詳しく教えて',
-  '最近のストレスと関連している？',
+  'ストレスと関連している？',
   '行動や習慣を変えるべき点はある？',
 ];
 
-export function AnalysisChat({ analysisId }: AnalysisChatProps) {
+export function SharedAnalysisChat({ analysisId, shareToken }: SharedAnalysisChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +36,8 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`/api/analyze/${analysisId}/chat`);
+        const tokenParam = shareToken ? `?token=${shareToken}` : '';
+        const response = await fetch(`/api/shared/chat/${analysisId}${tokenParam}`);
         if (response.ok) {
           const data = await response.json();
           setMessages(data);
@@ -46,10 +48,7 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
         } else if (response.status === 401) {
           setError('ログインが必要です');
         } else if (response.status === 403) {
-          const data = await response.json();
-          setError(data.error || 'この分析にアクセスする権限がありません');
-        } else if (response.status === 404) {
-          setError('分析が見つかりません');
+          setError('この分析にアクセスする権限がありません');
         }
       } catch (err) {
         console.error('Failed to fetch messages:', err);
@@ -58,7 +57,7 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
     };
 
     fetchMessages();
-  }, [analysisId]);
+  }, [analysisId, shareToken]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -79,28 +78,24 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
       id: 'temp-user',
       role: 'user',
       content: userInput,
+      userName: 'あなた',
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMessage]);
 
     try {
-      const response = await fetch(`/api/analyze/${analysisId}/chat`, {
+      const response = await fetch(`/api/shared/chat/${analysisId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userInput }),
+        body: JSON.stringify({
+          message: userInput,
+          shareToken,
+        }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        if (response.status === 401) {
-          throw new Error('ログインが必要です');
-        } else if (response.status === 403) {
-          throw new Error(data.error || 'この分析にアクセスする権限がありません');
-        } else if (response.status === 404) {
-          throw new Error('分析が見つかりません');
-        } else {
-          throw new Error(data.error || 'メッセージの送信に失敗しました');
-        }
+        throw new Error(data.error || 'メッセージの送信に失敗しました');
       }
 
       const data = await response.json();
@@ -114,7 +109,6 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
       ]);
     } catch (err) {
       console.error('Error sending message:', err);
-      // Remove temp message on error
       setMessages((prev) => prev.filter((m) => m.id !== 'temp-user'));
       setError(err instanceof Error ? err.message : 'メッセージの送信に失敗しました');
     } finally {
@@ -126,20 +120,18 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
     setInput(question);
   };
 
-  const handleClearHistory = async () => {
-    if (!confirm('対話履歴をクリアしますか？')) return;
-
-    try {
-      const response = await fetch(`/api/analyze/${analysisId}/chat`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error('Failed to clear history:', error);
+  // モデル名を短縮表示
+  const formatModelName = (modelName: string) => {
+    // 長いモデル名を短縮
+    if (modelName.includes('claude')) {
+      const match = modelName.match(/claude[- ]?([\w.]+)/i);
+      return match ? `Claude ${match[1]}` : modelName;
     }
+    // OpenRouter のプレフィックスを除去
+    if (modelName.includes('/')) {
+      return modelName.split('/').pop() || modelName;
+    }
+    return modelName;
   };
 
   return (
@@ -213,23 +205,22 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
                   >
                     <div className={`max-w-[85%] ${message.role === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
                       {/* ユーザー名 or モデル名のラベル */}
-                      {(message.userName || message.modelName) && (
-                        <div className={`mb-1 flex items-center gap-1.5 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                          {message.role === 'user' && message.userName && (
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {message.userName}
-                            </span>
-                          )}
-                          {message.role === 'assistant' && message.modelName && (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                              </svg>
-                              {message.modelName}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      <div className={`mb-1 flex items-center gap-1.5 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        {message.role === 'user' ? (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {message.userName || '匿名'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            {message.modelName ? formatModelName(message.modelName) : 'AI'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* メッセージ本体 */}
                       <div
                         className={`rounded-lg px-4 py-2 ${
                           message.role === 'user'
@@ -289,35 +280,25 @@ export function AnalysisChat({ analysisId }: AnalysisChatProps) {
 
           {/* Input form */}
           {!error && (
-          <div className="border-t border-border p-4">
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="質問や感想を入力..."
-                disabled={isLoading}
-                className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              >
-                送信
-              </button>
-            </form>
-            {messages.length > 0 && (
-              <div className="mt-2 flex justify-end">
+            <div className="border-t border-border p-4">
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="質問や感想を入力..."
+                  disabled={isLoading}
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                />
                 <button
-                  onClick={handleClearHistory}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  type="submit"
+                  disabled={!input.trim() || isLoading}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  履歴をクリア
+                  送信
                 </button>
-              </div>
-            )}
-          </div>
+              </form>
+            </div>
           )}
         </div>
       )}
