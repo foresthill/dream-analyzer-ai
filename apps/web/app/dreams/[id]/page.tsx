@@ -41,12 +41,12 @@ export default async function DreamPage({ params }: DreamPageProps) {
 
   return (
     <div className="space-y-8">
-      <DreamDetail dream={dream} />
-
-      {/* Share button */}
+      {/* Share button - top right */}
       <div className="flex justify-end">
         <ShareButton dreamId={dream.id} targetLabel={dream.title} />
       </div>
+
+      <DreamDetail dream={dream} />
 
       {/* Analysis control */}
       <div className="rounded-lg border border-border bg-card p-6">
