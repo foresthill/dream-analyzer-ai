@@ -7,6 +7,7 @@ import { getMoodLabel } from '@dream-analyzer/dream-core';
 import type { DreamMood } from '@dream-analyzer/shared-types';
 import { cn } from '@/lib/utils';
 import { ShareDialog } from '@/components/sharing/share-dialog';
+import { SharedAnalysisChat } from '@/components/analysis/shared-analysis-chat';
 
 // ===== 型定義 =====
 
@@ -226,40 +227,43 @@ function ReceivedTab() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">分析結果 ({selectedDream.analyses.length}件)</h2>
             {selectedDream.analyses.map((analysis, index) => (
-              <div key={analysis.id} className="rounded-lg border-2 border-border bg-card p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-                  <h3 className="text-lg font-semibold">分析 #{selectedDream.analyses.length - index}</h3>
-                  <div className="text-right">
-                    <div className="text-sm font-mono text-muted-foreground">
-                      {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
-                      {analysis.model}
+              <div key={analysis.id} className="space-y-3">
+                <div className="rounded-lg border-2 border-border bg-card p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+                    <h3 className="text-lg font-semibold">分析 #{selectedDream.analyses.length - index}</h3>
+                    <div className="text-right">
+                      <div className="text-sm font-mono text-muted-foreground">
+                        {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
+                        {analysis.model}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="mb-2 font-semibold">心理学的解釈</h4>
+                      <p className="text-muted-foreground">{analysis.psychologicalInterpretation}</p>
+                    </div>
+                    <div>
+                      <h4 className="mb-2 font-semibold">テーマ</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis.themes.map((theme) => (
+                          <span key={theme} className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+                            {theme}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="mb-2 font-semibold">洞察・アドバイス</h4>
+                      <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+                        {analysis.insights.map((insight, i) => (
+                          <li key={i}>{insight}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="mb-2 font-semibold">心理学的解釈</h4>
-                    <p className="text-muted-foreground">{analysis.psychologicalInterpretation}</p>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 font-semibold">テーマ</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {analysis.themes.map((theme) => (
-                        <span key={theme} className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
-                          {theme}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 font-semibold">洞察・アドバイス</h4>
-                    <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-                      {analysis.insights.map((insight, i) => (
-                        <li key={i}>{insight}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                <SharedAnalysisChat analysisId={analysis.id} />
               </div>
             ))}
           </div>

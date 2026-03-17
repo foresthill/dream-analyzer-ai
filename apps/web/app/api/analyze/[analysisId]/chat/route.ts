@@ -105,6 +105,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         analysisId,
         role: 'user',
         content: message,
+        userName: session.user.name || '匿名ユーザー',
       },
     });
 
@@ -222,11 +223,15 @@ ${analysisContext}
     }
 
     // Save AI response
+    const modelUsed = provider === 'anthropic'
+      ? (analysis.model || 'claude-sonnet-4-20250514')
+      : (analysis.model || 'anthropic/claude-3.5-sonnet');
     const assistantMessage = await prisma.analysisConversation.create({
       data: {
         analysisId,
         role: 'assistant',
         content: aiResponse,
+        modelName: modelUsed,
       },
     });
 

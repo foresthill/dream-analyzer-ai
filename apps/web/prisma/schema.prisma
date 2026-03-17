@@ -183,6 +183,10 @@ model AnalysisConversation {
   role       String  // 'user' or 'assistant'
   content    String  @db.Text
 
+  // 誰が質問したか / どのモデルが回答したか
+  userName   String?  // ユーザー表示名（user roleの場合）
+  modelName  String?  // AIモデル名（assistant roleの場合）
+
   createdAt  DateTime @default(now())
 
   @@index([analysisId])

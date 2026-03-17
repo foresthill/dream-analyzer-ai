@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/utils';
 import { getMoodLabel } from '@dream-analyzer/dream-core';
 import type { DreamMood } from '@dream-analyzer/shared-types';
 import Link from 'next/link';
+import { SharedAnalysisChat } from '@/components/analysis/shared-analysis-chat';
 
 interface SharedDream {
   id: string;
@@ -31,6 +32,14 @@ interface SharedDream {
     provider: string;
     model: string;
     analyzedAt: string;
+    conversations?: Array<{
+      id: string;
+      role: string;
+      content: string;
+      userName?: string | null;
+      modelName?: string | null;
+      createdAt: string;
+    }>;
   }>;
 }
 
@@ -62,6 +71,14 @@ interface SharedDreamer {
       provider: string;
       model: string;
       analyzedAt: string;
+      conversations?: Array<{
+        id: string;
+        role: string;
+        content: string;
+        userName?: string | null;
+        modelName?: string | null;
+        createdAt: string;
+      }>;
     }>;
   }>;
 }
@@ -150,7 +167,7 @@ export default function SharedPage() {
 
       {/* 単一の夢を共有 */}
       {data.dream && (
-        <SharedDreamView dream={data.dream} />
+        <SharedDreamView dream={data.dream} shareToken={token} />
       )}
 
       {/* ドリーマーの全ての夢を共有 */}
@@ -193,8 +210,15 @@ export default function SharedPage() {
               </button>
 
               {expandedDream === dream.id && (
-                <div className="border-t border-border p-6">
+                <div className="border-t border-border p-6 space-y-4">
                   <SharedDreamContent dream={dream} />
+                  {dream.analyses.length > 0 && dream.analyses.map((analysis) => (
+                    <SharedAnalysisChat
+                      key={analysis.id}
+                      analysisId={analysis.id}
+                      shareToken={token}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -205,7 +229,7 @@ export default function SharedPage() {
   );
 }
 
-function SharedDreamView({ dream }: { dream: SharedDream }) {
+function SharedDreamView({ dream, shareToken }: { dream: SharedDream; shareToken: string }) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-border bg-background p-6">
@@ -229,11 +253,16 @@ function SharedDreamView({ dream }: { dream: SharedDream }) {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">分析結果 ({dream.analyses.length}件)</h2>
           {dream.analyses.map((analysis, index) => (
-            <SharedAnalysisView
-              key={analysis.id}
-              analysis={analysis}
-              index={dream.analyses.length - index}
-            />
+            <div key={analysis.id} className="space-y-3">
+              <SharedAnalysisView
+                analysis={analysis}
+                index={dream.analyses.length - index}
+              />
+              <SharedAnalysisChat
+                analysisId={analysis.id}
+                shareToken={shareToken}
+              />
+            </div>
           ))}
         </div>
       )}

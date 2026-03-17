@@ -46,6 +46,17 @@ export async function GET(_request: Request, { params }: RouteParams) {
             provider: true,
             model: true,
             analyzedAt: true,
+            conversations: {
+              orderBy: { createdAt: 'asc' },
+              select: {
+                id: true,
+                role: true,
+                content: true,
+                userName: true,
+                modelName: true,
+                createdAt: true,
+              },
+            },
           },
         },
         user: { select: { name: true, image: true } },
