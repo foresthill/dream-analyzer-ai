@@ -1,6 +1,6 @@
 'use client';
 
-import { Volume2, VolumeX, Pause, Play } from 'lucide-react';
+import { Volume2, VolumeX, Pause, Play, RotateCcw } from 'lucide-react';
 import { useTextToSpeech } from '@/hooks/use-text-to-speech';
 
 interface TextToSpeechButtonProps {
@@ -20,7 +20,17 @@ export function TextToSpeechButton({
   size = 'md',
   showLabel = true,
 }: TextToSpeechButtonProps) {
-  const { isSpeaking, isPaused, isSupported, speak, stop, togglePause } = useTextToSpeech({
+  const {
+    isSpeaking,
+    isPaused,
+    isSupported,
+    isInterrupted,
+    progress,
+    speak,
+    stop,
+    togglePause,
+    resumeFromInterruption,
+  } = useTextToSpeech({
     language: 'ja-JP',
     rate: 1,
   });
@@ -95,6 +105,34 @@ export function TextToSpeechButton({
             <Pause className={iconSizes[size]} />
           )}
         </button>
+      )}
+
+      {/* 中断からの再開ボタン */}
+      {isInterrupted && !isSpeaking && (
+        <button
+          type="button"
+          onClick={resumeFromInterruption}
+          className={`
+            inline-flex items-center justify-center gap-1.5 rounded-lg transition-all
+            bg-yellow-500 text-white hover:bg-yellow-600
+            ${sizeClasses[size]}
+          `}
+          title="中断した位置から再開"
+          aria-label="中断した位置から再開"
+        >
+          <RotateCcw className={iconSizes[size]} />
+          {showLabel && <span>続きから再開</span>}
+        </button>
+      )}
+
+      {/* 進捗バー（読み上げ中のみ表示） */}
+      {isSpeaking && progress > 0 && (
+        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       )}
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AVAILABLE_MODELS, useSettingsStore, type AIProvider } from '@/store/settings-store';
+import { AnalysisLoading } from '@/components/analysis/analysis-loading';
 
 interface Analysis {
   id: string;
@@ -195,11 +196,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
         </div>
       )}
 
-      {isAnalyzing && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-600">
-          AIが夢を分析しています。完了までお待ちください...
-        </div>
-      )}
+      {isAnalyzing && <AnalysisLoading />}
     </div>
   );
 }
