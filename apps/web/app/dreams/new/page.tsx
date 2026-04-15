@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DreamForm } from '@/components/dreams/dream-form';
+import { AnalysisLoading } from '@/components/analysis/analysis-loading';
 import { useSettingsStore } from '@/store/settings-store';
 import type { CreateDreamInput } from '@dream-analyzer/shared-types';
 
 export default function NewDreamPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { modelConfig, fetchSettings } = useSettingsStore();
 
   // ページ読み込み時にサーバーから設定を取得
@@ -34,6 +36,7 @@ export default function NewDreamPage() {
 
       // 2. AI解析を開始する場合
       if (startAnalysis) {
+        setIsAnalyzing(true);
         // AI解析APIを呼び出し
         const analyzeResponse = await fetch('/api/analyze', {
           method: 'POST',
@@ -58,8 +61,23 @@ export default function NewDreamPage() {
       alert('夢の記録に失敗しました');
     } finally {
       setIsSubmitting(false);
+      setIsAnalyzing(false);
     }
   };
+
+  if (isAnalyzing) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">夢を記録</h1>
+          <p className="text-muted-foreground">
+            夢が保存されました。AI分析を実行中です...
+          </p>
+        </div>
+        <AnalysisLoading />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

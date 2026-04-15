@@ -24,31 +24,48 @@ interface Dreamer {
   relationship?: string;
 }
 
+export interface DreamFormInitialData {
+  dreamerId: string;
+  title: string;
+  content: string;
+  date: string;
+  mood: DreamMood;
+  lucidity: number;
+  vividness: number;
+  emotionalIntensity: number;
+  setting: string;
+  characters: string;
+  emotions: string;
+}
+
 interface DreamFormProps {
   onSubmit: (dream: CreateDreamInput & { dreamerId: string }, startAnalysis: boolean) => void;
   isSubmitting?: boolean;
+  initialData?: DreamFormInitialData;
+  mode?: 'create' | 'edit';
 }
 
-export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
+export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create' }: DreamFormProps) {
   const [dreamers, setDreamers] = useState<Dreamer[]>([]);
-  const [dreamerId, setDreamerId] = useState('');
+  const [dreamerId, setDreamerId] = useState(initialData?.dreamerId ?? '');
   const [loading, setLoading] = useState(true);
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [content, setContent] = useState(initialData?.content ?? '');
   const [date, setDate] = useState(() => {
+    if (initialData?.date) return initialData.date;
     const now = new Date();
     const jstOffset = 9 * 60 * 60 * 1000;
     const jstTime = new Date(now.getTime() + jstOffset);
     return jstTime.toISOString().split('T')[0];
   });
-  const [mood, setMood] = useState<DreamMood>('neutral');
-  const [lucidity, setLucidity] = useState(5);
-  const [vividness, setVividness] = useState(5);
-  const [emotionalIntensity, setEmotionalIntensity] = useState(5);
-  const [setting, setSetting] = useState('');
-  const [characters, setCharacters] = useState('');
-  const [emotions, setEmotions] = useState('');
+  const [mood, setMood] = useState<DreamMood>(initialData?.mood ?? 'neutral');
+  const [lucidity, setLucidity] = useState(initialData?.lucidity ?? 5);
+  const [vividness, setVividness] = useState(initialData?.vividness ?? 5);
+  const [emotionalIntensity, setEmotionalIntensity] = useState(initialData?.emotionalIntensity ?? 5);
+  const [setting, setSetting] = useState(initialData?.setting ?? '');
+  const [characters, setCharacters] = useState(initialData?.characters ?? '');
+  const [emotions, setEmotions] = useState(initialData?.emotions ?? '');
 
   // オプション項目の開閉状態
   const [showOptions, setShowOptions] = useState(false);
@@ -59,7 +76,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
         const response = await fetch('/api/dreamers');
         const data = await response.json();
         setDreamers(data);
-        if (data.length > 0) {
+        if (!initialData?.dreamerId && data.length > 0) {
           setDreamerId(data[0].id);
         }
       } catch (error) {
@@ -70,7 +87,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
     };
 
     fetchDreamers();
-  }, []);
+  }, [initialData?.dreamerId]);
 
   const generateTitle = () => {
     // 内容の最初の20文字をタイトルにする
@@ -187,22 +204,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
         </div>
       </div>
 
-      {/* 3. タイトル（任意） */}
-      <div>
-        <label htmlFor="title" className="mb-1 block text-sm font-medium">
-          タイトル（任意）
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="空欄の場合は自動で生成されます"
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      {/* 4. 日付 */}
+      {/* 3. 日付 */}
       <div>
         <label htmlFor="date" className="mb-1 block text-sm font-medium">
           日付
@@ -216,7 +218,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
         />
       </div>
 
-      {/* オプション項目（トグル） */}
+      {/* オプション項目（トグル）- タイトル、気分、明晰度など */}
       <div className="rounded-lg border border-border">
         <button
           type="button"
@@ -224,7 +226,7 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           className="flex w-full items-center justify-between p-4 text-left hover:bg-accent/50"
         >
           <span className="text-sm font-medium text-muted-foreground">
-            その他のオプション（気分、明晰度など）
+            その他のオプション（タイトル、気分、明晰度など）
           </span>
           {showOptions ? (
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -235,6 +237,21 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
 
         {showOptions && (
           <div className="space-y-4 border-t border-border p-4">
+            {/* タイトル（任意） */}
+            <div>
+              <label htmlFor="title" className="mb-1 block text-sm font-medium">
+                タイトル（任意）
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="空欄の場合は自動で生成されます"
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              />
+            </div>
+
             {/* 気分 */}
             <div>
               <label htmlFor="mood" className="mb-1 block text-sm font-medium">
@@ -355,7 +372,11 @@ export function DreamForm({ onSubmit, isSubmitting }: DreamFormProps) {
           className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Sparkles className="h-4 w-4" />
-          {isSubmitting ? '処理中...' : '保存してAI解析を開始'}
+          {isSubmitting
+            ? '処理中...'
+            : mode === 'edit'
+            ? '保存してAI再解析を開始'
+            : '保存してAI解析を開始'}
         </button>
 
         {/* サブボタン: 保存のみ */}

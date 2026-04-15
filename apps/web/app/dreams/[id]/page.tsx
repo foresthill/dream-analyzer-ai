@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
 import { DreamDetail } from '@/components/dreams/dream-detail';
 import { AnalysisResult } from '@/components/analysis/analysis-result';
 import { AnalysisChat } from '@/components/analysis/analysis-chat';
@@ -41,8 +42,15 @@ export default async function DreamPage({ params }: DreamPageProps) {
 
   return (
     <div className="space-y-8">
-      {/* Share button - top right */}
-      <div className="flex justify-end">
+      {/* Action buttons - top right */}
+      <div className="flex items-center justify-end gap-2">
+        <Link
+          href={`/dreams/${dream.id}/edit`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-accent"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          編集
+        </Link>
         <ShareButton dreamId={dream.id} targetLabel={dream.title} />
       </div>
 
