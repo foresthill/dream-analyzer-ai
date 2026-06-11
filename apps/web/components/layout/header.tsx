@@ -3,6 +3,13 @@
 import Link from 'next/link';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Image from 'next/image';
+import { useThemeStore, type Theme } from '@/store/theme-store';
+
+const themeOptions: { value: Theme; icon: string; label: string }[] = [
+  { value: 'light', icon: '☀️', label: 'ライト' },
+  { value: 'dark', icon: '🌙', label: 'ダーク' },
+  { value: 'kawaii', icon: '🌸', label: 'かわいい' },
+];
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -10,6 +17,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { data: session, status } = useSession();
+  const { theme, setTheme } = useThemeStore();
 
   return (
     <header className="border-b border-border bg-background">
@@ -40,6 +48,25 @@ export function Header({ onMenuClick }: HeaderProps) {
           <span className="text-lg font-bold">Dream Analyzer</span>
         </Link>
         <nav className="ml-auto flex items-center gap-4">
+          {/* Theme switcher */}
+          <div className="flex items-center rounded-full border border-border bg-secondary p-0.5">
+            {themeOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                className={`rounded-full px-2 py-1 text-sm transition-colors ${
+                  theme === option.value
+                    ? 'bg-background shadow-sm'
+                    : 'hover:bg-background/50'
+                }`}
+                aria-label={option.label}
+                title={option.label}
+              >
+                {option.icon}
+              </button>
+            ))}
+          </div>
+
           {session && (
             <Link
               href="/dreams/new"

@@ -9,12 +9,31 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useEffect, useState } from 'react';
+import { useThemeStore } from '@/store/theme-store';
 
 interface TrendChartProps {
   data: Array<{ date: string; count: number }>;
 }
 
+function useCSSColor(varName: string, fallback: string) {
+  const theme = useThemeStore((s) => s.theme);
+  const [color, setColor] = useState(fallback);
+  useEffect(() => {
+    // Small delay to let the DOM update the CSS variables
+    const id = requestAnimationFrame(() => {
+      const value = getComputedStyle(document.documentElement)
+        .getPropertyValue(varName)
+        .trim();
+      if (value) setColor(value);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [varName, theme]);
+  return color;
+}
+
 export function TrendChart({ data }: TrendChartProps) {
+  const primaryColor = useCSSColor('--color-primary', '#6366f1');
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-muted-foreground">
@@ -45,7 +64,7 @@ export function TrendChart({ data }: TrendChartProps) {
         <Line
           type="monotone"
           dataKey="count"
-          stroke="#6366f1"
+          stroke={primaryColor}
           strokeWidth={2}
           dot={{ r: 4 }}
           name="夢の数"
