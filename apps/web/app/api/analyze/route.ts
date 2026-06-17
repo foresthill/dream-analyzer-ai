@@ -47,6 +47,50 @@ export async function POST(request: Request) {
       );
     }
 
+    // Fetch past dreams for context (same dreamer, last 10, excluding current)
+    const pastDreams = await prisma.dream.findMany({
+      where: {
+        dreamerId: dream.dreamerId,
+        id: { not: dream.id },
+        analyzed: true,
+      },
+      include: {
+        analyses: {
+          take: 1,
+          orderBy: { analyzedAt: 'desc' },
+          select: { themes: true, symbols: true },
+        },
+      },
+      orderBy: { date: 'desc' },
+      take: 10,
+    });
+
+    const recentDreams = pastDreams.map(
+      (d) => `[${d.date.toISOString().split('T')[0]}] ${d.title}: ${d.content.slice(0, 100)}`
+    );
+
+    const themeCounts = new Map<string, number>();
+    const symbolCounts = new Map<string, number>();
+    for (const d of pastDreams) {
+      for (const a of d.analyses) {
+        for (const t of a.themes) {
+          themeCounts.set(t, (themeCounts.get(t) || 0) + 1);
+        }
+        for (const s of a.symbols as Array<{ symbol: string }>) {
+          symbolCounts.set(s.symbol, (symbolCounts.get(s.symbol) || 0) + 1);
+        }
+      }
+    }
+    const recurringThemes = Array.from(themeCounts.entries())
+      .filter(([, c]) => c >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, c]) => `${t}(${c}回)`);
+    const recurringSymbols = Array.from(symbolCounts.entries())
+      .filter(([, c]) => c >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([s, c]) => `${s}(${c}回)`);
+
     // Analyze the dream
     const analyzer = new DreamAnalyzer({
       provider,
@@ -62,6 +106,11 @@ export async function POST(request: Request) {
         setting: dream.setting || undefined,
         characters: dream.characters,
       },
+      userContext: recentDreams.length > 0 ? {
+        recentDreams,
+        recurringThemes,
+        recurringSymbols,
+      } : undefined,
     });
 
     // Check if analysis with this provider/model already exists
