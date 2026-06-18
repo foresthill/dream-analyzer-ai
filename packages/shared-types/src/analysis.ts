@@ -10,6 +10,7 @@ export interface AnalysisRequest {
   userContext?: {
     recentDreams?: string[];
     recurringThemes?: string[];
+    recurringSymbols?: string[];
   };
 }
 

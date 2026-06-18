@@ -105,6 +105,28 @@ export class DreamAnalyzer {
   }
 
   private buildPrompt(request: AnalysisRequest): string {
+    const hasHistory = request.userContext?.recentDreams && request.userContext.recentDreams.length > 0;
+
+    let historySection = '';
+    if (hasHistory) {
+      historySection = `
+【この人の最近の夢の履歴】
+${request.userContext!.recentDreams!.join('\n')}
+`;
+      if (request.userContext!.recurringThemes?.length) {
+        historySection += `
+繰り返し出現するテーマ: ${request.userContext!.recurringThemes.join(', ')}`;
+      }
+      if (request.userContext!.recurringSymbols?.length) {
+        historySection += `
+繰り返し出現するシンボル: ${request.userContext!.recurringSymbols.join(', ')}`;
+      }
+      historySection += `
+
+上記の履歴・パターンを踏まえて、今回の夢が過去の夢とどう関連するか、繰り返し現れるテーマやシンボルに変化や発展があるかにも言及してください。
+`;
+    }
+
     return `あなたは経験豊富な夢分析の専門家です。以下の夢を心理学的・象徴的に分析してください。
 
 【夢の内容】
@@ -114,16 +136,7 @@ export class DreamAnalyzer {
 ${request.dream.emotions ? `感情: ${request.dream.emotions.join(', ')}` : ''}
 ${request.dream.setting ? `場所: ${request.dream.setting}` : ''}
 ${request.dream.characters ? `登場人物: ${request.dream.characters.join(', ')}` : ''}
-
-${
-  request.userContext?.recentDreams
-    ? `
-【最近の夢】
-${request.userContext.recentDreams.join('\n')}
-`
-    : ''
-}
-
+${historySection}
 以下のJSON形式で分析結果を返してください：
 
 \`\`\`json

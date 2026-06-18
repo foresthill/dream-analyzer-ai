@@ -152,12 +152,9 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
 
   return (
     <form className="space-y-6">
-      {/* 1. 夢の内容（一番上） */}
+      {/* 夢の内容 */}
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <label htmlFor="content" className="block text-sm font-medium">
-            夢の内容 <span className="text-red-500">*</span>
-          </label>
+        <div className="mb-2 flex items-center justify-end">
           <VoiceInputButton
             value={content}
             onValueChange={setContent}
@@ -175,50 +172,7 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
         />
       </div>
 
-      {/* 2. 夢を見た人 */}
-      <div>
-        <label htmlFor="dreamer" className="mb-1 block text-sm font-medium">
-          夢を見た人 <span className="text-red-500">*</span>
-        </label>
-        <div className="flex gap-2">
-          <select
-            id="dreamer"
-            value={dreamerId}
-            onChange={(e) => setDreamerId(e.target.value)}
-            required
-            className="flex-1 rounded-md border border-border bg-background px-3 py-2"
-          >
-            {dreamers.map((dreamer) => (
-              <option key={dreamer.id} value={dreamer.id}>
-                {dreamer.name}
-                {dreamer.relationship && ` (${dreamer.relationship})`}
-              </option>
-            ))}
-          </select>
-          <Link
-            href="/dreamers"
-            className="whitespace-nowrap rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
-          >
-            管理
-          </Link>
-        </div>
-      </div>
-
-      {/* 3. 日付 */}
-      <div>
-        <label htmlFor="date" className="mb-1 block text-sm font-medium">
-          日付
-        </label>
-        <input
-          id="date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2"
-        />
-      </div>
-
-      {/* オプション項目（トグル）- タイトル、気分、明晰度など */}
+      {/* オプション項目（すべて収納） */}
       <div className="rounded-lg border border-border">
         <button
           type="button"
@@ -226,7 +180,7 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
           className="flex w-full items-center justify-between p-4 text-left hover:bg-accent/50"
         >
           <span className="text-sm font-medium text-muted-foreground">
-            その他のオプション（タイトル、気分、明晰度など）
+            詳細設定（夢を見た人、日付、気分など）
           </span>
           {showOptions ? (
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -237,6 +191,49 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
 
         {showOptions && (
           <div className="space-y-4 border-t border-border p-4">
+            {/* 夢を見た人 */}
+            <div>
+              <label htmlFor="dreamer" className="mb-1 block text-sm font-medium">
+                夢を見た人
+              </label>
+              <div className="flex gap-2">
+                <select
+                  id="dreamer"
+                  value={dreamerId}
+                  onChange={(e) => setDreamerId(e.target.value)}
+                  required
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2"
+                >
+                  {dreamers.map((dreamer) => (
+                    <option key={dreamer.id} value={dreamer.id}>
+                      {dreamer.name}
+                      {dreamer.relationship && ` (${dreamer.relationship})`}
+                    </option>
+                  ))}
+                </select>
+                <Link
+                  href="/dreamers"
+                  className="whitespace-nowrap rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
+                >
+                  管理
+                </Link>
+              </div>
+            </div>
+
+            {/* 日付 */}
+            <div>
+              <label htmlFor="date" className="mb-1 block text-sm font-medium">
+                日付
+              </label>
+              <input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2"
+              />
+            </div>
+
             {/* タイトル（任意） */}
             <div>
               <label htmlFor="title" className="mb-1 block text-sm font-medium">

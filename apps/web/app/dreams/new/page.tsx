@@ -81,12 +81,7 @@ export default function NewDreamPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">夢を記録</h1>
-        <p className="text-muted-foreground">
-          夢の内容を入力してください
-        </p>
-      </div>
+      <h1 className="text-2xl font-bold">夢を記録</h1>
       <DreamForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
     </div>
   );

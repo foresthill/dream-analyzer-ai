@@ -121,6 +121,35 @@ export async function POST(request: Request, { params }: RouteParams) {
       content: message,
     });
 
+    // Fetch past dreams for context (same dreamer, last 5)
+    const pastDreams = await prisma.dream.findMany({
+      where: {
+        dreamerId: analysis.dream.dreamerId,
+        id: { not: analysis.dream.id },
+        analyzed: true,
+      },
+      include: {
+        analyses: {
+          take: 1,
+          orderBy: { analyzedAt: 'desc' },
+          select: { themes: true },
+        },
+      },
+      orderBy: { date: 'desc' },
+      take: 5,
+    });
+
+    let pastDreamContext = '';
+    if (pastDreams.length > 0) {
+      const summaries = pastDreams.map(
+        (d) => `- [${d.date.toISOString().split('T')[0]}] ${d.title}: ${d.content.slice(0, 80)}`
+      );
+      pastDreamContext = `
+この人の最近の他の夢:
+${summaries.join('\n')}
+`;
+    }
+
     // Prepare analysis context
     const analysisContext = `
 夢の内容:
@@ -142,7 +171,7 @@ ${analysis.underlyingMeanings.map((m) => `- ${m}`).join('\n')}
 
 洞察・アドバイス:
 ${analysis.insights.map((i) => `- ${i}`).join('\n')}
-`;
+${pastDreamContext}`;
 
     // Get AI provider configuration
     const provider = (analysis.provider || 'anthropic') as 'anthropic' | 'openrouter';

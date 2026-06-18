@@ -45,16 +45,16 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <Link href="/" className="flex items-center gap-2">
           <span className="text-xl">🌙</span>
-          <span className="text-lg font-bold">Dream Analyzer</span>
+          <span className="hidden text-lg font-bold sm:block">Dream Analyzer</span>
         </Link>
-        <nav className="ml-auto flex items-center gap-4">
+        <nav className="ml-auto flex items-center gap-2 md:gap-4">
           {/* Theme switcher */}
           <div className="flex items-center rounded-full border border-border bg-secondary p-0.5">
             {themeOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => setTheme(option.value)}
-                className={`rounded-full px-2 py-1 text-sm transition-colors ${
+                className={`rounded-full px-1.5 py-1 text-sm transition-colors ${
                   theme === option.value
                     ? 'bg-background shadow-sm'
                     : 'hover:bg-background/50'
@@ -70,7 +70,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           {session && (
             <Link
               href="/dreams/new"
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="hidden text-sm text-muted-foreground hover:text-foreground sm:block"
             >
               夢を記録
             </Link>
@@ -98,7 +98,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               )}
               <button
                 onClick={() => signOut()}
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="hidden text-sm text-muted-foreground hover:text-foreground sm:block"
               >
                 ログアウト
               </button>
