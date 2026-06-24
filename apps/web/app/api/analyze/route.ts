@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { DreamAnalyzer } from '@dream-analyzer/dream-core';
 import { auth } from '@/auth';
+import { recordAiLog } from '@/lib/ai-log';
 
 // POST /api/analyze - Analyze a dream
 export async function POST(request: Request) {
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
       apiKey,
       model,
     });
-    const result = await analyzer.analyze({
+
+    const analysisRequest = {
       dream: {
         title: dream.title,
         content: dream.content,
@@ -111,6 +113,41 @@ export async function POST(request: Request) {
         recurringThemes,
         recurringSymbols,
       } : undefined,
+    };
+
+    let run;
+    try {
+      run = await analyzer.run(analysisRequest);
+    } catch (aiError) {
+      // AI呼び出し／パース失敗も動作ログに残す
+      await recordAiLog({
+        userId: session.user.id,
+        operation: 'ANALYZE',
+        provider,
+        model: analyzer['model'],
+        prompt: analyzer['buildPrompt'](analysisRequest),
+        status: 'ERROR',
+        errorMessage: aiError instanceof Error ? aiError.message : String(aiError),
+        dreamId: dream.id,
+      });
+      throw aiError;
+    }
+
+    const result = run.result;
+
+    // 送信プロンプトと生レスポンスを動作ログに記録
+    await recordAiLog({
+      userId: session.user.id,
+      operation: 'ANALYZE',
+      provider: run.provider,
+      model: run.model,
+      prompt: run.prompt,
+      response: run.rawResponse,
+      status: 'SUCCESS',
+      promptTokens: run.usage.promptTokens,
+      completionTokens: run.usage.completionTokens,
+      latencyMs: run.latencyMs,
+      dreamId: dream.id,
     });
 
     // Check if analysis with this provider/model already exists

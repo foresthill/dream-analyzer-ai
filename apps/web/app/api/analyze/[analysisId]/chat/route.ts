@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/auth';
 import Anthropic from '@anthropic-ai/sdk';
+import { recordAiLog } from '@/lib/ai-log';
 
 interface RouteParams {
   params: Promise<{ analysisId: string }>;
@@ -186,75 +187,115 @@ ${pastDreamContext}`;
       );
     }
 
-    let aiResponse: string;
-
-    if (provider === 'anthropic') {
-      const anthropic = new Anthropic({ apiKey });
-
-      const response = await anthropic.messages.create({
-        model: analysis.model || 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: `あなたは夢分析の専門家です。以下の夢とその分析結果に基づいて、ユーザーの質問に答えたり、分析を深めたり、修正を提案したりしてください。
+    // システムプロンプト（anthropic / openrouter 共通）
+    const systemPrompt = `あなたは夢分析の専門家です。以下の夢とその分析結果に基づいて、ユーザーの質問に答えたり、分析を深めたり、修正を提案したりしてください。
 
 ${analysisContext}
 
-ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。回答は最後まで完結させてください。`,
-        messages: existingConversations.map((c) => ({
-          role: c.role,
-          content: c.content,
-        })),
-      });
+ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。回答は最後まで完結させてください。`;
 
-      aiResponse = response.content[0].type === 'text'
-        ? response.content[0].text
-        : '';
-
-      // 回答が途中で切れた場合の警告
-      if (response.stop_reason === 'max_tokens') {
-        aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
-      }
-    } else {
-      // OpenRouter
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXTAUTH_URL || 'http://localhost:3000',
-        },
-        body: JSON.stringify({
-          model: analysis.model || 'anthropic/claude-3.5-sonnet',
-          messages: [
-            {
-              role: 'system',
-              content: `あなたは夢分析の専門家です。以下の夢とその分析結果に基づいて、ユーザーの質問に答えたり、分析を深めたり、修正を提案したりしてください。
-
-${analysisContext}
-
-ユーザーからの質問や要望に対して、夢分析の観点から丁寧に、かつ洞察に富んだ回答を提供してください。必要に応じて、心理学的な視点や象徴的な解釈を加えてください。回答は最後まで完結させてください。`,
-            },
-            ...existingConversations.map((c) => ({
-              role: c.role,
-              content: c.content,
-            })),
-          ],
-          max_tokens: 4096,
-        }),
-      });
-
-      const data = await response.json();
-      aiResponse = data.choices?.[0]?.message?.content || '';
-
-      // 回答が途中で切れた場合の警告
-      if (data.choices?.[0]?.finish_reason === 'length') {
-        aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
-      }
-    }
-
-    // Save AI response
     const modelUsed = provider === 'anthropic'
       ? (analysis.model || 'claude-sonnet-4-20250514')
       : (analysis.model || 'anthropic/claude-3.5-sonnet');
+
+    let aiResponse: string;
+    let promptTokens: number | undefined;
+    let completionTokens: number | undefined;
+    const aiStartedAt = Date.now();
+
+    try {
+      if (provider === 'anthropic') {
+        const anthropic = new Anthropic({ apiKey });
+
+        const response = await anthropic.messages.create({
+          model: modelUsed,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: existingConversations.map((c) => ({
+            role: c.role,
+            content: c.content,
+          })),
+        });
+
+        aiResponse = response.content[0].type === 'text'
+          ? response.content[0].text
+          : '';
+        promptTokens = response.usage?.input_tokens;
+        completionTokens = response.usage?.output_tokens;
+
+        // 回答が途中で切れた場合の警告
+        if (response.stop_reason === 'max_tokens') {
+          aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
+        }
+      } else {
+        // OpenRouter
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.NEXTAUTH_URL || 'http://localhost:3000',
+          },
+          body: JSON.stringify({
+            model: modelUsed,
+            messages: [
+              {
+                role: 'system',
+                content: systemPrompt,
+              },
+              ...existingConversations.map((c) => ({
+                role: c.role,
+                content: c.content,
+              })),
+            ],
+            max_tokens: 4096,
+          }),
+        });
+
+        const data = await response.json();
+        aiResponse = data.choices?.[0]?.message?.content || '';
+        promptTokens = data.usage?.prompt_tokens;
+        completionTokens = data.usage?.completion_tokens;
+
+        // 回答が途中で切れた場合の警告
+        if (data.choices?.[0]?.finish_reason === 'length') {
+          aiResponse += '\n\n（※回答が長くなったため途中で切れています。「続きを教えて」と聞いてください）';
+        }
+      }
+    } catch (aiError) {
+      // AI呼び出し失敗も動作ログに残す
+      await recordAiLog({
+        userId: session.user.id,
+        operation: 'CHAT',
+        provider,
+        model: modelUsed,
+        systemPrompt,
+        prompt: message,
+        status: 'ERROR',
+        errorMessage: aiError instanceof Error ? aiError.message : String(aiError),
+        latencyMs: Date.now() - aiStartedAt,
+        dreamId: analysis.dream.id,
+        analysisId,
+      });
+      throw aiError;
+    }
+
+    // 送信プロンプト（システム＋ユーザーメッセージ）と生レスポンスを動作ログに記録
+    await recordAiLog({
+      userId: session.user.id,
+      operation: 'CHAT',
+      provider,
+      model: modelUsed,
+      systemPrompt,
+      prompt: message,
+      response: aiResponse,
+      status: 'SUCCESS',
+      promptTokens,
+      completionTokens,
+      latencyMs: Date.now() - aiStartedAt,
+      dreamId: analysis.dream.id,
+      analysisId,
+    });
     const assistantMessage = await prisma.analysisConversation.create({
       data: {
         analysisId,

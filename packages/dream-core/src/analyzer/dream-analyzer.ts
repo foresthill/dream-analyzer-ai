@@ -9,6 +9,22 @@ export interface DreamAnalyzerConfig {
   model?: string;
 }
 
+export interface TokenUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+}
+
+// 動作ログ用に、解析結果に加えて生のやり取りを返す
+export interface AnalysisRunResult {
+  result: AnalysisResponse;
+  prompt: string;       // AIに送信したプロンプト
+  rawResponse: string;  // AIから返ってきた生レスポンス
+  provider: AIProvider;
+  model: string;
+  usage: TokenUsage;
+  latencyMs: number;
+}
+
 export class DreamAnalyzer {
   private provider: AIProvider;
   private apiKey: string;
@@ -35,16 +51,33 @@ export class DreamAnalyzer {
   }
 
   async analyze(request: AnalysisRequest): Promise<AnalysisResponse> {
-    const prompt = this.buildPrompt(request);
-
-    if (this.provider === 'anthropic') {
-      return this.analyzeWithAnthropic(prompt);
-    } else {
-      return this.analyzeWithOpenRouter(prompt);
-    }
+    const { result } = await this.run(request);
+    return result;
   }
 
-  private async analyzeWithAnthropic(prompt: string): Promise<AnalysisResponse> {
+  // analyze() と同じ処理だが、動作ログ用に生のプロンプト／レスポンス／使用量も返す
+  async run(request: AnalysisRequest): Promise<AnalysisRunResult> {
+    const prompt = this.buildPrompt(request);
+    const startedAt = Date.now();
+
+    const { rawText, usage } = this.provider === 'anthropic'
+      ? await this.callAnthropic(prompt)
+      : await this.callOpenRouter(prompt);
+
+    const latencyMs = Date.now() - startedAt;
+
+    return {
+      result: this.parseResponse(rawText),
+      prompt,
+      rawResponse: rawText,
+      provider: this.provider,
+      model: this.model,
+      usage,
+      latencyMs,
+    };
+  }
+
+  private async callAnthropic(prompt: string): Promise<{ rawText: string; usage: TokenUsage }> {
     if (!this.anthropicClient) {
       throw new Error('Anthropic client not initialized');
     }
@@ -65,10 +98,16 @@ export class DreamAnalyzer {
       throw new Error('Unexpected response type');
     }
 
-    return this.parseResponse(textBlock.text);
+    return {
+      rawText: textBlock.text,
+      usage: {
+        promptTokens: message.usage?.input_tokens,
+        completionTokens: message.usage?.output_tokens,
+      },
+    };
   }
 
-  private async analyzeWithOpenRouter(prompt: string): Promise<AnalysisResponse> {
+  private async callOpenRouter(prompt: string): Promise<{ rawText: string; usage: TokenUsage }> {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -94,14 +133,23 @@ export class DreamAnalyzer {
       throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     const text = data.choices?.[0]?.message?.content;
 
     if (!text) {
       throw new Error('No response from OpenRouter API');
     }
 
-    return this.parseResponse(text);
+    return {
+      rawText: text,
+      usage: {
+        promptTokens: data.usage?.prompt_tokens,
+        completionTokens: data.usage?.completion_tokens,
+      },
+    };
   }
 
   private buildPrompt(request: AnalysisRequest): string {
