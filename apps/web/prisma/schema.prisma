@@ -23,6 +23,7 @@ model User {
   dreams    Dream[]
   dreamers  Dreamer[]
   shares    DreamShare[] // 自分が作成した共有
+  aiLogs    AiLog[]      // AI呼び出しの動作ログ
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -227,4 +228,55 @@ model DreamShare {
   @@index([dreamId])
   @@index([dreamerId])
   @@index([sharedWithEmail])
+}
+
+// AI動作ログ（何を投げて何が返ってきたか）
+enum AiLogOperation {
+  ANALYZE // 夢の初回分析
+  CHAT    // 分析結果に対する対話
+}
+
+enum AiLogStatus {
+  SUCCESS
+  ERROR
+}
+
+model AiLog {
+  id     String @id @default(cuid())
+
+  // 誰の操作か（ユーザー削除時はログも削除）
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // どの夢／分析に紐づくか（任意・参照のため文字列で保持しFKは張らない）
+  dreamId    String?
+  analysisId String?
+
+  operation AiLogOperation
+  provider  String         // 'anthropic' or 'openrouter'
+  model     String
+
+  // AIに投げた内容
+  systemPrompt String? @db.Text // システムプロンプト（CHAT等）
+  prompt       String  @db.Text // 送信したユーザープロンプト／メッセージ
+
+  // AIから返ってきた内容
+  response String? @db.Text // 生レスポンス本文
+
+  // 実行結果
+  status       AiLogStatus
+  errorMessage String?     @db.Text
+
+  // メタ情報
+  promptTokens     Int?
+  completionTokens Int?
+  latencyMs        Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([operation])
+  @@index([status])
+  @@index([dreamId])
+  @@index([analysisId])
 }

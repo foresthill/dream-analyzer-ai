@@ -1,5 +1,11 @@
 // Analyzer
 export { DreamAnalyzer } from './analyzer/dream-analyzer';
+export type {
+  AIProvider,
+  DreamAnalyzerConfig,
+  TokenUsage,
+  AnalysisRunResult,
+} from './analyzer/dream-analyzer';
 export { getMoodColor, getMoodLabel, MOOD_COLORS, MOOD_LABELS } from './analyzer/mood-analyzer';
 export { detectPatterns, type PatternResult } from './analyzer/pattern-detector';
 export { interpretSymbol, findRelatedSymbols } from './analyzer/symbol-interpreter';
