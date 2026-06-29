@@ -125,6 +125,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Fetch past dreams for context (same dreamer, last 5)
     const pastDreams = await prisma.dream.findMany({
       where: {
+        userId: session.user.id, // 念のためユーザー横断を防ぐ
         dreamerId: analysis.dream.dreamerId,
         id: { not: analysis.dream.id },
         analyzed: true,

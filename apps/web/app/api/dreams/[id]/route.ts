@@ -60,6 +60,24 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const body = await request.json();
 
+    // 指定されたドリーマーが本人のものか検証（他人のdreamerIdへの紐付けを防ぐ）
+    if (!body.dreamerId) {
+      return NextResponse.json(
+        { error: 'dreamerId is required' },
+        { status: 400 }
+      );
+    }
+    const dreamer = await prisma.dreamer.findFirst({
+      where: { id: body.dreamerId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!dreamer) {
+      return NextResponse.json(
+        { error: 'Dreamer not found' },
+        { status: 404 }
+      );
+    }
+
     // Check if content changed significantly (triggers re-analysis)
     const contentChanged = existing.content !== body.content ||
       existing.title !== body.title;
