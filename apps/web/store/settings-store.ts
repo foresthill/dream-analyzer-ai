@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsStore>()(
     (set, get) => ({
       modelConfig: {
         provider: 'anthropic',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-5',
       },
       isLoading: false,
       isSynced: false,
@@ -87,9 +87,9 @@ export const useSettingsStore = create<SettingsStore>()(
 // Available models for each provider
 export const AVAILABLE_MODELS = {
   anthropic: [
-    { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+    { value: 'claude-opus-5', label: 'Claude Opus 5（最高品質）' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5（バランス）' },
+    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5（高速・低コスト）' },
   ],
   openrouter: [
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
