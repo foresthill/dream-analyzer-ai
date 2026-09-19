@@ -4,6 +4,27 @@ import { DreamAnalyzer } from '@dream-analyzer/dream-core';
 import { auth } from '@/auth';
 import { recordAiLog } from '@/lib/ai-log';
 
+// AI呼び出しの生エラーメッセージを、原因別の分かりやすい日本語に変換する
+function friendlyAiError(detail: string, provider: string, model: string): string {
+  const m = detail.toLowerCase();
+  if (/parse|json/.test(m)) {
+    return `AIの応答を解析できませんでした（モデルが想定の形式で返しませんでした）。もう一度お試しください。モデル: ${model}`;
+  }
+  if (/401|403|invalid.*api.?key|authentication|x-api-key/.test(m)) {
+    return `AIのAPIキーが無効か権限がありません（${provider}）。サーバーのAPIキー設定を確認してください。`;
+  }
+  if (/429|rate.?limit|quota|insufficient|credit|billing/.test(m)) {
+    return `AIの利用制限に達しました（レート制限またはクレジット不足）。少し待つか、プランを確認してください。`;
+  }
+  if (/overloaded|529|503|502|timeout|timed out|econn|network|fetch failed/.test(m)) {
+    return `AIサービスが一時的に混み合っている/応答しませんでした。少し待ってから再試行してください。`;
+  }
+  if (/not.?found|404|model|does not exist|unsupported/.test(m)) {
+    return `指定したAIモデル「${model}」が利用できません。設定で別のモデルを選んでください。`;
+  }
+  return `AIの分析中にエラーが発生しました（${provider} / ${model}）。`;
+}
+
 // POST /api/analyze - Analyze a dream
 export async function POST(request: Request) {
   try {
@@ -120,6 +141,7 @@ export async function POST(request: Request) {
     try {
       run = await analyzer.run(analysisRequest);
     } catch (aiError) {
+      const detail = aiError instanceof Error ? aiError.message : String(aiError);
       // AI呼び出し／パース失敗も動作ログに残す
       await recordAiLog({
         userId: session.user.id,
@@ -128,10 +150,19 @@ export async function POST(request: Request) {
         model: analyzer['model'],
         prompt: analyzer['buildPrompt'](analysisRequest),
         status: 'ERROR',
-        errorMessage: aiError instanceof Error ? aiError.message : String(aiError),
+        errorMessage: detail,
         dreamId: dream.id,
       });
-      throw aiError;
+      // 何が起きたか分かるように、原因別のメッセージ＋技術詳細を返す
+      return NextResponse.json(
+        {
+          error: friendlyAiError(detail, provider, analyzer['model']),
+          detail,
+          provider,
+          model: analyzer['model'],
+        },
+        { status: 502 }
+      );
     }
 
     const result = run.result;
@@ -192,8 +223,9 @@ export async function POST(request: Request) {
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('Error analyzing dream:', error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'Failed to analyze dream' },
+      { error: '夢の分析中に予期しないエラーが発生しました。', detail },
       { status: 500 }
     );
   }
