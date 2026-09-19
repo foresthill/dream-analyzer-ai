@@ -12,7 +12,8 @@ export async function GET() {
 
     const dreamers = await prisma.dreamer.findMany({
       where: { userId: session.user.id },
-      orderBy: { name: 'asc' },
+      // 作成順（古い順）。最初に作った「夢を見た人」（多くの場合は自分）が先頭になる。
+      orderBy: { createdAt: 'asc' },
       include: {
         _count: {
           select: { dreams: true },

@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { VoiceInputButton } from '@/components/voice/voice-input-button';
 import { ChevronDown, ChevronUp, Sparkles, Save } from 'lucide-react';
 
+// 前回選んだ「夢を見た人」を記憶するlocalStorageキー（ユーザー間で共有しない前提のクライアント端末単位）
+const LAST_DREAMER_KEY = 'dream-analyzer:last-dreamer-id';
+
 const MOOD_OPTIONS: { value: DreamMood; label: string }[] = [
   { value: 'joyful', label: '喜び' },
   { value: 'peaceful', label: '穏やか' },
@@ -77,7 +80,18 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
         const data = await response.json();
         setDreamers(data);
         if (!initialData?.dreamerId && data.length > 0) {
-          setDreamerId(data[0].id);
+          // 前回選んだ「夢を見た人」を既定にする（毎回選び直す手間をなくす）。
+          // 記憶が無い/該当者が居ない場合は先頭（作成順で最初＝多くの場合は自分）。
+          let defaultId = data[0].id;
+          try {
+            const lastUsed = localStorage.getItem(LAST_DREAMER_KEY);
+            if (lastUsed && data.some((d: Dreamer) => d.id === lastUsed)) {
+              defaultId = lastUsed;
+            }
+          } catch {
+            // localStorage が使えない環境では先頭にフォールバック
+          }
+          setDreamerId(defaultId);
         }
       } catch (error) {
         console.error('Failed to fetch dreamers:', error);
@@ -110,6 +124,13 @@ export function DreamForm({ onSubmit, isSubmitting, initialData, mode = 'create'
     if (!content.trim()) {
       alert('夢の内容を入力してください');
       return;
+    }
+
+    // 次回の既定にするため、選んだ「夢を見た人」を記憶する
+    try {
+      localStorage.setItem(LAST_DREAMER_KEY, dreamerId);
+    } catch {
+      // localStorage が使えない環境では無視
     }
 
     // タイトルが空の場合は自動生成

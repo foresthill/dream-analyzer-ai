@@ -67,14 +67,16 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to analyze dream');
+        const data = await response.json().catch(() => ({}));
+        const base = data.error || `分析に失敗しました（HTTP ${response.status}）`;
+        // 技術的な詳細があれば併記して原因を分かりやすくする
+        throw new Error(data.detail ? `${base}\n詳細: ${data.detail}` : base);
       }
 
       // Refresh the page to show the new analysis
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze dream');
+      setError(err instanceof Error ? err.message : '分析に失敗しました（原因不明）');
     } finally {
       setIsAnalyzing(false);
     }
@@ -191,7 +193,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+        <div className="whitespace-pre-line rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           <strong>エラー:</strong> {error}
         </div>
       )}
