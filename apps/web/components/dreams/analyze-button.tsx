@@ -17,6 +17,12 @@ interface AnalyzeButtonProps {
   existingAnalyses: Analysis[];
 }
 
+// 表示用: 最初のコードフェンス（```）以降（＝保存用JSON）を隠し、読みやすい本文だけを見せる
+function stripJson(text: string): string {
+  const fence = text.indexOf('```');
+  return (fence === -1 ? text : text.slice(0, fence)).trim();
+}
+
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
   const { modelConfig } = useSettingsStore();
@@ -24,6 +30,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 設定ストアからデフォルト値を初期化（ハイドレーション対策）
@@ -54,9 +61,10 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
 
     setIsAnalyzing(true);
     setError(null);
+    setStreamText('');
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/analyze/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,14 +74,53 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
         }),
       });
 
-      if (!response.ok) {
+      // ストリーム開始前のエラー（認証・APIキー未設定など）はJSONで返る
+      if (!response.ok || !response.body) {
         const data = await response.json().catch(() => ({}));
         const base = data.error || `分析に失敗しました（HTTP ${response.status}）`;
-        // 技術的な詳細があれば併記して原因を分かりやすくする
         throw new Error(data.detail ? `${base}\n詳細: ${data.detail}` : base);
       }
 
-      // Refresh the page to show the new analysis
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let full = '';
+      let streamError: string | null = null;
+      let finished = false;
+
+      while (!finished) {
+        const { value, done: readerDone } = await reader.read();
+        if (readerDone) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let nl: number;
+        while ((nl = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          let msg: { type?: string; text?: string; error?: string; detail?: string };
+          try {
+            msg = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (msg.type === 'delta') {
+            full += msg.text ?? '';
+            setStreamText(stripJson(full));
+          } else if (msg.type === 'done') {
+            finished = true;
+          } else if (msg.type === 'error') {
+            streamError = msg.detail ? `${msg.error}\n詳細: ${msg.detail}` : (msg.error ?? '分析に失敗しました');
+            finished = true;
+          }
+        }
+      }
+
+      if (streamError) {
+        throw new Error(streamError);
+      }
+
+      // 保存済みの構造化分析を表示するためにページを更新
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '分析に失敗しました（原因不明）');
@@ -198,7 +245,19 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
         </div>
       )}
 
-      {isAnalyzing && <AnalysisLoading />}
+      {isAnalyzing && (
+        streamText ? (
+          <div className="rounded-lg border border-border bg-background p-4">
+            <div className="mb-2 text-xs font-medium text-muted-foreground">分析中（リアルタイム表示）…</div>
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {streamText}
+              <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-primary align-text-bottom" />
+            </div>
+          </div>
+        ) : (
+          <AnalysisLoading />
+        )
+      )}
     </div>
   );
 }

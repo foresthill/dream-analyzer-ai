@@ -78,6 +78,58 @@ export class DreamAnalyzer {
     };
   }
 
+  // ストリーミング版。読みやすい解説文を先に生成させ、トークンを逐次 onText に渡す。
+  // 最後に構造化JSONまで含めた全文をパースして結果を返す。
+  async streamRun(
+    request: AnalysisRequest,
+    onText: (delta: string) => void
+  ): Promise<AnalysisRunResult> {
+    const prompt = this.buildPrompt(request, { proseFirst: true });
+    const startedAt = Date.now();
+    let rawText = '';
+    let usage: TokenUsage = {};
+
+    if (this.provider === 'anthropic') {
+      if (!this.anthropicClient) {
+        throw new Error('Anthropic client not initialized');
+      }
+      const stream = this.anthropicClient.messages.stream({
+        model: this.model,
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      stream.on('text', (delta: string) => {
+        rawText += delta;
+        onText(delta);
+      });
+      const final = await stream.finalMessage();
+      usage = {
+        promptTokens: final.usage?.input_tokens,
+        completionTokens: final.usage?.output_tokens,
+      };
+      if (!rawText) {
+        const tb = final.content.find((b) => b.type === 'text');
+        rawText = tb && tb.type === 'text' ? tb.text : '';
+      }
+    } else {
+      // OpenRouter はここでは非ストリーミングにフォールバック（全文を一度に送出）
+      const res = await this.callOpenRouter(prompt);
+      rawText = res.rawText;
+      usage = res.usage;
+      onText(rawText);
+    }
+
+    return {
+      result: this.parseResponse(rawText),
+      prompt,
+      rawResponse: rawText,
+      provider: this.provider,
+      model: this.model,
+      usage,
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
   private async callAnthropic(prompt: string): Promise<{ rawText: string; usage: TokenUsage }> {
     if (!this.anthropicClient) {
       throw new Error('Anthropic client not initialized');
@@ -193,7 +245,8 @@ ${lines.join('\n')}
 `;
   }
 
-  private buildPrompt(request: AnalysisRequest): string {
+  private buildPrompt(request: AnalysisRequest, opts?: { proseFirst?: boolean }): string {
+    const proseFirst = opts?.proseFirst ?? false;
     const hasHistory = request.userContext?.recentDreams && request.userContext.recentDreams.length > 0;
 
     let historySection = '';
@@ -234,7 +287,10 @@ ${historySection}${symbolReference}
 3. この人の気分・感情・状況（および履歴があればそのパターン）と結びつけ、その人固有の文脈で解釈する。
 4. 最後に、日常で活かせる具体的で優しい洞察・アドバイスを添える。
 
-まず頭の中で上記に沿って分析を組み立て、そのうえで**最終結果を必ず次のJSON形式のコードブロックで**出力してください（コードブロックの前に思考を書いても構いません。最終的な機械可読の答えはJSONブロックのみとします）。
+${proseFirst
+  ? `まず、この夢の解釈を【読みやすい文章】で書いてください。見出しや段落を使い、3〜6段落程度で、専門用語は噛み砕き、断定しすぎず、この人に寄り添う語り口で。これが読者に見せる本文です。
+そのうえで最後に、その内容を必ず次のJSON形式のコードブロックで構造化してください（本文の後にJSONブロックを置く）。`
+  : `まず頭の中で上記に沿って分析を組み立て、そのうえで**最終結果を必ず次のJSON形式のコードブロックで**出力してください（コードブロックの前に思考を書いても構いません。最終的な機械可読の答えはJSONブロックのみとします）。`}
 
 \`\`\`json
 {
