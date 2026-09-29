@@ -14,6 +14,7 @@ const navigation = [
   { name: '夢を見た人', href: '/dreamers', icon: '👥' },
   { name: '共有', href: '/shared', icon: '🔗' },
   { name: 'AIログ', href: '/logs', icon: '🧾' },
+  { name: 'MCP接続', href: '/mcp', icon: '🔌' },
   { name: '設定', href: '/settings', icon: '⚙️' },
 ];
 
