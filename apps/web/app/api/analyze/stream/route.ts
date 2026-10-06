@@ -62,8 +62,13 @@ export async function POST(request: Request) {
       let closed = false;
       const send = (obj: unknown) => {
         if (closed) return;
-        controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n'));
+        // SSE 形式。iOS Safari 等が逐次受信できるよう text/event-stream で配信。
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
       };
+
+      // バッファリング対策: 先頭で大きめのコメント行を送り、ストリームを即座に開かせる
+      controller.enqueue(encoder.encode(`: ${' '.repeat(2048)}\n\n`));
+      send({ type: 'start' });
 
       try {
         const run = await analyzer.streamRun(analysisRequest, (delta) => {
@@ -120,8 +125,9 @@ export async function POST(request: Request) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
     },
   });

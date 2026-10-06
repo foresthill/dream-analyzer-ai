@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AVAILABLE_MODELS, useSettingsStore, type AIProvider } from '@/store/settings-store';
 import { AnalysisLoading } from '@/components/analysis/analysis-loading';
+import { streamAnalysis } from '@/lib/analyze-stream-client';
 
 interface Analysis {
   id: string;
@@ -15,12 +16,6 @@ interface Analysis {
 interface AnalyzeButtonProps {
   dreamId: string;
   existingAnalyses: Analysis[];
-}
-
-// 表示用: 最初のコードフェンス（```）以降（＝保存用JSON）を隠し、読みやすい本文だけを見せる
-function stripJson(text: string): string {
-  const fence = text.indexOf('```');
-  return (fence === -1 ? text : text.slice(0, fence)).trim();
 }
 
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
@@ -64,62 +59,13 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
     setStreamText('');
 
     try {
-      const response = await fetch('/api/analyze/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dreamId,
-          provider: selectedProvider,
-          model: selectedModel,
-        }),
-      });
-
-      // ストリーム開始前のエラー（認証・APIキー未設定など）はJSONで返る
-      if (!response.ok || !response.body) {
-        const data = await response.json().catch(() => ({}));
-        const base = data.error || `分析に失敗しました（HTTP ${response.status}）`;
-        throw new Error(data.detail ? `${base}\n詳細: ${data.detail}` : base);
+      const { ok, error: streamErr } = await streamAnalysis(
+        { dreamId, provider: selectedProvider, model: selectedModel },
+        (text) => setStreamText(text)
+      );
+      if (!ok) {
+        throw new Error(streamErr || '分析に失敗しました（原因不明）');
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let full = '';
-      let streamError: string | null = null;
-      let finished = false;
-
-      while (!finished) {
-        const { value, done: readerDone } = await reader.read();
-        if (readerDone) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let nl: number;
-        while ((nl = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, nl).trim();
-          buffer = buffer.slice(nl + 1);
-          if (!line) continue;
-          let msg: { type?: string; text?: string; error?: string; detail?: string };
-          try {
-            msg = JSON.parse(line);
-          } catch {
-            continue;
-          }
-          if (msg.type === 'delta') {
-            full += msg.text ?? '';
-            setStreamText(stripJson(full));
-          } else if (msg.type === 'done') {
-            finished = true;
-          } else if (msg.type === 'error') {
-            streamError = msg.detail ? `${msg.error}\n詳細: ${msg.detail}` : (msg.error ?? '分析に失敗しました');
-            finished = true;
-          }
-        }
-      }
-
-      if (streamError) {
-        throw new Error(streamError);
-      }
-
       // 保存済みの構造化分析を表示するためにページを更新
       router.refresh();
     } catch (err) {

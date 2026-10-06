@@ -6,12 +6,7 @@ import { DreamForm } from '@/components/dreams/dream-form';
 import { AnalysisLoading } from '@/components/analysis/analysis-loading';
 import { useSettingsStore } from '@/store/settings-store';
 import type { CreateDreamInput } from '@dream-analyzer/shared-types';
-
-// 表示用: 最初のコードフェンス（```）以降（＝保存用JSON）を隠し、読みやすい本文だけを見せる
-function stripJson(text: string): string {
-  const fence = text.indexOf('```');
-  return (fence === -1 ? text : text.slice(0, fence)).trim();
-}
+import { streamAnalysis } from '@/lib/analyze-stream-client';
 
 export default function NewDreamPage() {
   const router = useRouter();
@@ -45,55 +40,15 @@ export default function NewDreamPage() {
       if (startAnalysis) {
         setIsAnalyzing(true);
         setStreamText('');
-        try {
-          const analyzeResponse = await fetch('/api/analyze/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              dreamId: data.id,
-              provider: modelConfig.provider,
-              model: modelConfig.model,
-            }),
-          });
-
-          if (analyzeResponse.ok && analyzeResponse.body) {
-            const reader = analyzeResponse.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let full = '';
-            let finished = false;
-
-            while (!finished) {
-              const { value, done } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-
-              let nl: number;
-              while ((nl = buffer.indexOf('\n')) !== -1) {
-                const line = buffer.slice(0, nl).trim();
-                buffer = buffer.slice(nl + 1);
-                if (!line) continue;
-                let msg: { type?: string; text?: string };
-                try {
-                  msg = JSON.parse(line);
-                } catch {
-                  continue;
-                }
-                if (msg.type === 'delta') {
-                  full += msg.text ?? '';
-                  setStreamText(stripJson(full));
-                } else if (msg.type === 'done' || msg.type === 'error') {
-                  finished = true;
-                }
-              }
-            }
-          } else {
-            // 解析失敗でも夢は保存済みなので詳細ページへ
-            console.error('Analysis failed, but dream was saved');
-          }
-        } catch (e) {
-          console.error('Analysis stream failed, but dream was saved', e);
-        }
+        // 失敗しても夢は保存済みなので、結果に関わらず詳細ページへ遷移する
+        await streamAnalysis(
+          {
+            dreamId: data.id,
+            provider: modelConfig.provider,
+            model: modelConfig.model,
+          },
+          (text) => setStreamText(text)
+        );
       }
 
       // 詳細ページへ遷移（保存済みの構造化分析を表示）
