@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyMcpToken } from '@/lib/mcp-auth';
+import { userIdFromAccessToken } from '@/lib/oauth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+function withCors(res: NextResponse): NextResponse {
+  res.headers.set('Access-Control-Allow-Origin', '*');
+  res.headers.set('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.headers.set('Access-Control-Allow-Headers', '*');
+  res.headers.set('Access-Control-Expose-Headers', 'WWW-Authenticate, Mcp-Session-Id');
+  return res;
+}
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SERVER_INFO = { name: 'dream-analyzer', version: '1.0.0' };
@@ -210,15 +219,20 @@ async function handleMessage(userId: string, msg: { id?: JsonRpcId; method?: str
 
 // リモートMCP（Streamable HTTP）。JSON-RPC 2.0 を JSON で応答するステートレス実装。
 export async function POST(request: Request) {
-  const userId = verifyMcpToken(request.headers.get('authorization'));
+  const authHeader = request.headers.get('authorization');
+  // 静的トークン(dmcp_) または OAuthアクセストークン(JWT) のどちらでも可
+  const userId = verifyMcpToken(authHeader) || userIdFromAccessToken(authHeader);
   if (!userId) {
-    return new NextResponse(JSON.stringify({ error: 'invalid_token' }), {
+    const origin = new URL(request.url).origin;
+    const res = new NextResponse(JSON.stringify({ error: 'invalid_token' }), {
       status: 401,
       headers: {
         'Content-Type': 'application/json',
-        'WWW-Authenticate': 'Bearer realm="dream-analyzer", error="invalid_token"',
+        // OAuthクライアントにメタデータの場所を知らせる（RFC 9728）
+        'WWW-Authenticate': `Bearer error="invalid_token", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
       },
     });
+    return withCors(res);
   }
 
   let body: unknown;
@@ -230,16 +244,20 @@ export async function POST(request: Request) {
 
   if (Array.isArray(body)) {
     const responses = (await Promise.all(body.map((m) => handleMessage(userId, m)))).filter(Boolean);
-    if (responses.length === 0) return new NextResponse(null, { status: 202 });
-    return NextResponse.json(responses);
+    if (responses.length === 0) return withCors(new NextResponse(null, { status: 202 }));
+    return withCors(NextResponse.json(responses));
   }
 
   const response = await handleMessage(userId, body as { id?: JsonRpcId; method?: string; params?: Record<string, unknown> });
-  if (!response) return new NextResponse(null, { status: 202 });
-  return NextResponse.json(response);
+  if (!response) return withCors(new NextResponse(null, { status: 202 }));
+  return withCors(NextResponse.json(response));
 }
 
 // サーバー起点のSSEストリームは未対応
 export async function GET() {
   return new NextResponse('Method Not Allowed. Use POST (JSON-RPC).', { status: 405 });
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
 }

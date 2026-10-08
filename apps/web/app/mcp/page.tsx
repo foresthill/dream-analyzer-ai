@@ -118,7 +118,43 @@ export default function McpPage() {
             <h2 className="text-lg font-semibold">接続方法</h2>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold">A. Claude Code（CLI）</h3>
+              <h3 className="text-sm font-semibold">A. claude.ai / スマホアプリ（カスタムコネクター・OAuth）</h3>
+              <p className="text-sm text-muted-foreground">
+                設定 → コネクター → 「カスタムコネクターを追加」→ 下記の<b>サーバーURL</b>を登録。
+                接続時にこのアプリのログイン（Google）＝OAuthで認可すれば繋がります。トークンの貼り付けは不要です。
+              </p>
+              <CopyField label="登録するURL" value={url} />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">B. Claude Desktop</h3>
+              <p className="text-sm text-muted-foreground">
+                方法1（かんたん）: 設定 → コネクター → カスタムコネクター → 上記URLを登録（A と同じOAuth）。<br />
+                方法2（トークン方式・OAuth不要）: <code>claude_desktop_config.json</code> に以下を追記。
+              </p>
+              {revealed && url && token ? (
+                <CopyField
+                  label="claude_desktop_config.json"
+                  value={JSON.stringify(
+                    {
+                      mcpServers: {
+                        'dream-analyzer': {
+                          command: 'npx',
+                          args: ['-y', 'mcp-remote', url, '--header', `Authorization: Bearer ${token}`],
+                        },
+                      },
+                    },
+                    null,
+                    2
+                  )}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">「トークンを表示」を押すと設定JSONが出ます。</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">C. Claude Code（CLI）</h3>
               <p className="text-sm text-muted-foreground">ターミナルで以下を実行:</p>
               {revealed && claudeCliCmd ? (
                 <CopyField label="コマンド" value={claudeCliCmd} />
@@ -127,14 +163,10 @@ export default function McpPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">B. claude.ai / スマホアプリ（カスタムコネクター）</h3>
-              <p className="text-sm text-muted-foreground">
-                設定 → コネクター → カスタムコネクターを追加 → 上記の「サーバーURL」を登録します。
-                ※ claude.ai 側は接続時にOAuthを求める場合があります。うまく繋がらない場合は、
-                まず上記A（Claude Code）で動作確認するのが確実です（OAuth対応は次の段階で追加予定）。
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              ※ 「mcpx / .mcpb（旧.dxt）」は、Claude Desktop に<b>ローカルのMCPサーバーを同梱</b>して配布する形式です。
+              このアプリはクラウド常駐のリモートMCPなので、上記の URL登録（OAuth）または mcp-remote 方式が適切で、.mcpb のビルドは不要です。
+            </p>
           </div>
 
           <div className="space-y-1">
