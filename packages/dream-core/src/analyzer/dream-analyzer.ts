@@ -138,11 +138,10 @@ export class DreamAnalyzer {
         rawText = tb && tb.type === 'text' ? tb.text : '';
       }
     } else {
-      // OpenRouter はここでは非ストリーミングにフォールバック（全文を一度に送出）
-      const res = await this.callOpenRouter(prompt);
+      // OpenRouter も逐次ストリーミング（SSE）で配信する
+      const res = await this.streamOpenRouter(prompt, onText);
       rawText = res.rawText;
       usage = res.usage;
-      onText(rawText);
     }
 
     return {
@@ -249,6 +248,93 @@ export class DreamAnalyzer {
         completionTokens: data.usage?.completion_tokens,
       },
     };
+  }
+
+  // OpenRouter の逐次ストリーミング（OpenAI互換SSE）。トークンを逐次 onText に渡す。
+  // reasoning:{enabled:false} で推論モデルの隠れ思考を抑制し、最初からテキストを流す。
+  // reasoning 非対応モデル等で最初のリクエストが失敗した場合は、reasoning を外して再試行する。
+  private async streamOpenRouter(
+    prompt: string,
+    onText: (delta: string) => void
+  ): Promise<{ rawText: string; usage: TokenUsage }> {
+    const doFetch = (disableReasoning: boolean) =>
+      fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://github.com/foresthill/dream-analyzer-ai',
+          'X-Title': 'Dream Analyzer',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 8000,
+          stream: true,
+          stream_options: { include_usage: true },
+          ...(disableReasoning ? { reasoning: { enabled: false } } : {}),
+        }),
+      });
+
+    let response = await doFetch(true);
+    if (!response.ok) {
+      // reasoning 等が原因で弾かれた可能性 → 外して再試行
+      response = await doFetch(false);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+      }
+    }
+    if (!response.body) {
+      throw new Error('No response body from OpenRouter API');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let rawText = '';
+    let usage: TokenUsage = {};
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let nl: number;
+      while ((nl = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') continue;
+
+        let json: {
+          choices?: Array<{ delta?: { content?: string } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+        };
+        try {
+          json = JSON.parse(data);
+        } catch {
+          continue;
+        }
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) {
+          rawText += delta;
+          onText(delta);
+        }
+        if (json.usage) {
+          usage = {
+            promptTokens: json.usage.prompt_tokens,
+            completionTokens: json.usage.completion_tokens,
+          };
+        }
+      }
+    }
+
+    if (!rawText) {
+      throw new Error('No response from OpenRouter API');
+    }
+    return { rawText, usage };
   }
 
   // 夢の内容に関連するシンボル辞典のエントリを抽出する（最大 limit 件）。
