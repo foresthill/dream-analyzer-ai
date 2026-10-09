@@ -93,16 +93,42 @@ export class DreamAnalyzer {
       if (!this.anthropicClient) {
         throw new Error('Anthropic client not initialized');
       }
-      const stream = this.anthropicClient.messages.stream({
-        model: this.model,
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      });
-      stream.on('text', (delta: string) => {
-        rawText += delta;
-        onText(delta);
-      });
-      const final = await stream.finalMessage();
+      const client = this.anthropicClient;
+
+      // 1回のストリーム実行。disableThinking=true のとき thinking を無効化して送る。
+      // 拡張思考(thinking)は Sonnet 5 / Opus 5 等で既定ON。思考中は可視テキストが出ず
+      // 「無音で待たされ最後に一気」になるため、無効化して最初から逐次表示させる。
+      // ※ SDK 0.32.1 の型には thinking が無いためボディへ直接載せる。
+      const runOnce = async (disableThinking: boolean) => {
+        const params: Record<string, unknown> = {
+          model: this.model,
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: prompt }],
+        };
+        if (disableThinking) params.thinking = { type: 'disabled' };
+        const stream = client.messages.stream(
+          params as unknown as Parameters<typeof client.messages.stream>[0]
+        );
+        stream.on('text', (delta: string) => {
+          rawText += delta;
+          onText(delta);
+        });
+        return stream.finalMessage();
+      };
+
+      let final;
+      try {
+        final = await runOnce(true);
+      } catch (e) {
+        // thinking 無効化が拒否される古いモデル等では、まだ何も出力していなければ
+        // thinking なしで再試行する（分析自体を失敗させない）。
+        if (rawText.length === 0 && this.isThinkingParamError(e)) {
+          final = await runOnce(false);
+        } else {
+          throw e;
+        }
+      }
+
       usage = {
         promptTokens: final.usage?.input_tokens,
         completionTokens: final.usage?.output_tokens,
@@ -130,21 +156,41 @@ export class DreamAnalyzer {
     };
   }
 
+  // thinking パラメータ非対応モデル等による 400 エラーかどうかの判定（フォールバック用）
+  private isThinkingParamError(e: unknown): boolean {
+    const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+    return msg.includes('thinking');
+  }
+
   private async callAnthropic(prompt: string): Promise<{ rawText: string; usage: TokenUsage }> {
     if (!this.anthropicClient) {
       throw new Error('Anthropic client not initialized');
     }
+    const client = this.anthropicClient;
 
-    const message = await this.anthropicClient.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+    // 拡張思考(thinking)を無効化（応答までの待ちを短縮）。型に無いためボディへ直接付与。
+    const callOnce = async (disableThinking: boolean) => {
+      const params: Record<string, unknown> = {
+        model: this.model,
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      if (disableThinking) params.thinking = { type: 'disabled' };
+      return client.messages.create(
+        params as unknown as Anthropic.MessageCreateParamsNonStreaming
+      );
+    };
+
+    let message;
+    try {
+      message = await callOnce(true);
+    } catch (e) {
+      if (this.isThinkingParamError(e)) {
+        message = await callOnce(false);
+      } else {
+        throw e;
+      }
+    }
 
     const textBlock = message.content[0];
     if (textBlock.type !== 'text') {
