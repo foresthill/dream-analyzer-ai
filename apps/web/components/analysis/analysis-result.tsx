@@ -73,7 +73,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
             showLabel={false}
           />
         </div>
-        <p className="text-muted-foreground">{analysis.psychologicalInterpretation}</p>
+        <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{analysis.psychologicalInterpretation}</p>
       </div>
 
       <div className="rounded-lg border border-border bg-background p-6">
