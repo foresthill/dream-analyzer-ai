@@ -102,7 +102,7 @@ export class DreamAnalyzer {
       const runOnce = async (disableThinking: boolean) => {
         const params: Record<string, unknown> = {
           model: this.model,
-          max_tokens: 5000,
+          max_tokens: 4000,
           messages: [{ role: 'user', content: prompt }],
         };
         if (disableThinking) params.thinking = { type: 'disabled' };
@@ -269,7 +269,7 @@ export class DreamAnalyzer {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 5000,
+          max_tokens: 4000,
           stream: true,
           stream_options: { include_usage: true },
           ...(disableReasoning ? { reasoning: { enabled: false } } : {}),
@@ -446,7 +446,7 @@ ${request.userContext!.recentDreams!.join('\n')}
 \`\`\``;
 
     const outputSection = proseFirst
-      ? `まず、この夢の解釈を【読みやすい文章】で書いてください。段落を使い、3〜5段落で、専門用語は噛み砕き、断定しすぎず、この人に寄り添う語り口で。**この本文がそのまま「心理学的解釈」として保存・表示されます**（別途あらすじを繰り返さないこと）。
+      ? `まず、この夢の解釈を【読みやすい文章】で書いてください。段落を使い、2〜4段落で簡潔に（冗長にしない）、専門用語は噛み砕き、断定しすぎず、この人に寄り添う語り口で。**この本文がそのまま「心理学的解釈」として保存・表示されます**（別途あらすじを繰り返さないこと）。
 そのうえで最後に、本文を補完する構造化メタ情報だけを次のJSONで出力してください（本文＝解釈はJSONに入れない）。
 
 ${metaJson}
