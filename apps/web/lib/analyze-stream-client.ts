@@ -38,6 +38,7 @@ export async function streamAnalysis(
   let full = '';
   let streamError: string | undefined;
   let finished = false;
+  let completed = false; // サーバーが 'done'（保存完了）を返したか
 
   while (!finished) {
     const { value, done } = await reader.read();
@@ -68,6 +69,7 @@ export async function streamAnalysis(
         full += msg.text ?? '';
         onText(stripJson(full));
       } else if (msg.type === 'done') {
+        completed = true;
         finished = true;
       } else if (msg.type === 'error') {
         streamError = msg.detail ? `${msg.error}\n詳細: ${msg.detail}` : (msg.error ?? '分析に失敗しました');
@@ -78,5 +80,14 @@ export async function streamAnalysis(
   }
 
   if (streamError) return { ok: false, error: streamError };
+  // 'done'（保存完了）を受け取らずにストリームが途切れた＝未完了（タイムアウト等）。
+  // 成功扱いにすると「流れたのに保存されない」が無言で起きるため、失敗として扱う。
+  if (!completed) {
+    return {
+      ok: false,
+      error:
+        '応答が最後まで完了しませんでした（モデルが遅く、サーバーの時間制限で打ち切られた可能性があります）。もう一度試すか、設定で速いモデル（例: Claude Sonnet / Haiku、Gemini Flash 等）に切り替えてください。',
+    };
+  }
   return { ok: true };
 }
