@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AVAILABLE_MODELS, useSettingsStore, type AIProvider } from '@/store/settings-store';
 import { AnalysisLoading } from '@/components/analysis/analysis-loading';
 import { streamAnalysis } from '@/lib/analyze-stream-client';
+import { useAvailableModels } from '@/lib/use-available-models';
 
 interface Analysis {
   id: string;
@@ -21,6 +22,7 @@ interface AnalyzeButtonProps {
 export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps) {
   const router = useRouter();
   const { modelConfig } = useSettingsStore();
+  const { models } = useAvailableModels();
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>('anthropic');
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -44,7 +46,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
 
   const handleProviderChange = (provider: AIProvider) => {
     setSelectedProvider(provider);
-    setSelectedModel(AVAILABLE_MODELS[provider][0].value);
+    setSelectedModel(models[provider][0]?.value ?? '');
   };
 
   const handleAnalyze = async () => {
@@ -128,11 +130,18 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
               onChange={(e) => setSelectedModel(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
-              {AVAILABLE_MODELS[selectedProvider].map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label}
-                </option>
-              ))}
+              {(() => {
+                const list = models[selectedProvider];
+                const hasCurrent = list.some((m) => m.value === selectedModel);
+                const options = hasCurrent || !selectedModel
+                  ? list
+                  : [...list, { value: selectedModel, label: `${selectedModel}（現在の設定）` }];
+                return options.map((model) => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
+                  </option>
+                ));
+              })()}
             </select>
           </div>
         </div>

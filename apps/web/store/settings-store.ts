@@ -84,7 +84,7 @@ export const useSettingsStore = create<SettingsStore>()(
   )
 );
 
-// Available models for each provider
+// Available models for each provider（静的フォールバック。実際の一覧は /api/models で動的取得）
 export const AVAILABLE_MODELS = {
   anthropic: [
     { value: 'claude-opus-5', label: 'Claude Opus 5（最高品質）' },
@@ -92,14 +92,9 @@ export const AVAILABLE_MODELS = {
     { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5（高速・低コスト）' },
   ],
   openrouter: [
-    { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
-    { value: 'anthropic/claude-3-opus', label: 'Claude 3 Opus' },
-    { value: 'openai/gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5' },
     { value: 'openai/gpt-4o', label: 'GPT-4o' },
-    { value: 'google/gemini-pro-1.5', label: 'Gemini Pro 1.5' },
-    { value: 'google/gemini-flash-1.5', label: 'Gemini Flash 1.5' },
-    { value: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
-    { value: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { value: 'mistralai/mistral-large', label: 'Mistral Large' },
   ],
 } as const;
