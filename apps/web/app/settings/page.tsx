@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSettingsStore, AVAILABLE_MODELS, type AIProvider } from '@/store/settings-store';
+import { useSettingsStore, type AIProvider } from '@/store/settings-store';
+import { useAvailableModels } from '@/lib/use-available-models';
 
 export default function SettingsPage() {
   const { modelConfig, isLoading, isSynced, fetchSettings, saveSettings } = useSettingsStore();
+  const { models } = useAvailableModels();
   const [showSaved, setShowSaved] = useState(false);
 
   // ページ読み込み時にサーバーから設定を取得
@@ -13,7 +15,7 @@ export default function SettingsPage() {
   }, [fetchSettings]);
 
   const handleProviderChange = async (provider: AIProvider) => {
-    const defaultModel = AVAILABLE_MODELS[provider][0].value;
+    const defaultModel = models[provider][0]?.value ?? modelConfig.model;
     await saveSettings({ provider, model: defaultModel });
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
@@ -80,11 +82,19 @@ export default function SettingsPage() {
                 disabled={isLoading}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 disabled:opacity-50"
               >
-                {AVAILABLE_MODELS[modelConfig.provider].map((model) => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
-                ))}
+                {(() => {
+                  const list = models[modelConfig.provider];
+                  // 現在選択中のモデルが一覧に無くても選べるように補完
+                  const hasCurrent = list.some((m) => m.value === modelConfig.model);
+                  const options = hasCurrent || !modelConfig.model
+                    ? list
+                    : [...list, { value: modelConfig.model, label: `${modelConfig.model}（現在の設定）` }];
+                  return options.map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ));
+                })()}
               </select>
               <p className="mt-1 text-xs text-muted-foreground">
                 現在選択中: <span className="font-mono">{modelConfig.model}</span>
