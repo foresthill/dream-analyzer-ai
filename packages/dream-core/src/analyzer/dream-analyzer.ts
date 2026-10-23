@@ -102,7 +102,7 @@ export class DreamAnalyzer {
       const runOnce = async (disableThinking: boolean) => {
         const params: Record<string, unknown> = {
           model: this.model,
-          max_tokens: 8000,
+          max_tokens: 5000,
           messages: [{ role: 'user', content: prompt }],
         };
         if (disableThinking) params.thinking = { type: 'disabled' };
@@ -145,7 +145,7 @@ export class DreamAnalyzer {
     }
 
     return {
-      result: this.parseResponse(rawText),
+      result: this.parseStreamResult(rawText),
       prompt,
       rawResponse: rawText,
       provider: this.provider,
@@ -269,7 +269,7 @@ export class DreamAnalyzer {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 8000,
+          max_tokens: 5000,
           stream: true,
           stream_options: { include_usage: true },
           ...(disableReasoning ? { reasoning: { enabled: false } } : {}),
@@ -403,28 +403,28 @@ ${request.userContext!.recentDreams!.join('\n')}
 
     const symbolReference = this.buildSymbolReference(this.findRelevantSymbols(request));
 
-    return `あなたは臨床心理学と夢分析に精通した専門家です。ユング心理学（元型・影・アニマ/アニムス・集合的無意識）、フロイト的視点（願望充足・抑圧）、および現代の認知・感情理論を統合し、決めつけを避けながら、この人にとっての意味を丁寧に読み解いてください。
+    // メタ情報のJSON（proseFirst時は本文=psychologicalInterpretationを重複させない）
+    const metaJson = `\`\`\`json
+{
+  "symbols": [
+    {
+      "symbol": "シンボル名",
+      "category": "people|animals|places|objects|actions|emotions|nature|colors|numbers|abstract",
+      "interpretation": "このシンボルの意味（簡潔に・両面に触れる）"
+    }
+  ],
+  "themes": ["テーマ1", "テーマ2", "テーマ3"],
+  "emotionalAnalysis": {
+    "primary": "主要な感情",
+    "secondary": ["副次的な感情1", "副次的な感情2"],
+    "intensity": 7
+  },
+  "underlyingMeanings": ["潜在的な意味1", "潜在的な意味2"],
+  "insights": ["洞察・アドバイス1", "洞察・アドバイス2"]
+}
+\`\`\``;
 
-【夢の内容】
-タイトル: ${request.dream.title}
-詳細: ${request.dream.content}
-気分: ${request.dream.mood}
-${request.dream.emotions ? `感情: ${request.dream.emotions.join(', ')}` : ''}
-${request.dream.setting ? `場所: ${request.dream.setting}` : ''}
-${request.dream.characters ? `登場人物: ${request.dream.characters.join(', ')}` : ''}
-${historySection}${symbolReference}
-【分析の指針】
-1. 夢の情景・登場人物・感情の流れを丁寧に追い、表面的な出来事の奥にある心理を読む。
-2. 主要なシンボルを特定し、複数の解釈の可能性（肯定的・否定的の両面）を示す。断定しすぎない。
-3. この人の気分・感情・状況（および履歴があればそのパターン）と結びつけ、その人固有の文脈で解釈する。
-4. 最後に、日常で活かせる具体的で優しい洞察・アドバイスを添える。
-
-${proseFirst
-  ? `まず、この夢の解釈を【読みやすい文章】で書いてください。見出しや段落を使い、3〜6段落程度で、専門用語は噛み砕き、断定しすぎず、この人に寄り添う語り口で。これが読者に見せる本文です。
-そのうえで最後に、その内容を必ず次のJSON形式のコードブロックで構造化してください（本文の後にJSONブロックを置く）。`
-  : `まず頭の中で上記に沿って分析を組み立て、そのうえで**最終結果を必ず次のJSON形式のコードブロックで**出力してください（コードブロックの前に思考を書いても構いません。最終的な機械可読の答えはJSONブロックのみとします）。`}
-
-\`\`\`json
+    const fullJson = `\`\`\`json
 {
   "psychologicalInterpretation": "統合的な心理学的解釈（300-400文字、具体的に）",
   "symbols": [
@@ -443,9 +443,64 @@ ${proseFirst
   "underlyingMeanings": ["潜在的な意味1", "潜在的な意味2", "潜在的な意味3"],
   "insights": ["洞察・アドバイス1", "洞察・アドバイス2", "洞察・アドバイス3"]
 }
-\`\`\`
+\`\`\``;
+
+    const outputSection = proseFirst
+      ? `まず、この夢の解釈を【読みやすい文章】で書いてください。段落を使い、3〜5段落で、専門用語は噛み砕き、断定しすぎず、この人に寄り添う語り口で。**この本文がそのまま「心理学的解釈」として保存・表示されます**（別途あらすじを繰り返さないこと）。
+そのうえで最後に、本文を補完する構造化メタ情報だけを次のJSONで出力してください（本文＝解釈はJSONに入れない）。
+
+${metaJson}
+
+JSONの値は必ず日本語で、intensity は1〜10の整数にしてください。`
+      : `まず頭の中で上記に沿って分析を組み立て、そのうえで**最終結果を必ず次のJSON形式のコードブロックで**出力してください（コードブロックの前に思考を書いても構いません。最終的な機械可読の答えはJSONブロックのみとします）。
+
+${fullJson}
 
 JSONの値は必ず日本語で、intensity は1〜10の整数にしてください。`;
+
+    return `あなたは臨床心理学と夢分析に精通した専門家です。ユング心理学（元型・影・アニマ/アニムス・集合的無意識）、フロイト的視点（願望充足・抑圧）、および現代の認知・感情理論を統合し、決めつけを避けながら、この人にとっての意味を丁寧に読み解いてください。
+
+【夢の内容】
+タイトル: ${request.dream.title}
+詳細: ${request.dream.content}
+気分: ${request.dream.mood}
+${request.dream.emotions ? `感情: ${request.dream.emotions.join(', ')}` : ''}
+${request.dream.setting ? `場所: ${request.dream.setting}` : ''}
+${request.dream.characters ? `登場人物: ${request.dream.characters.join(', ')}` : ''}
+${historySection}${symbolReference}
+【分析の指針】
+1. 夢の情景・登場人物・感情の流れを丁寧に追い、表面的な出来事の奥にある心理を読む。
+2. 主要なシンボルを特定し、複数の解釈の可能性（肯定的・否定的の両面）を示す。断定しすぎない。
+3. この人の気分・感情・状況（および履歴があればそのパターン）と結びつけ、その人固有の文脈で解釈する。
+4. 最後に、日常で活かせる具体的で優しい洞察・アドバイスを添える。
+
+${outputSection}`;
+  }
+
+  // ストリーミング（proseFirst）用のパース。
+  // 本文（コードフェンスより前のテキスト）を psychologicalInterpretation とし、
+  // JSON部はメタ情報として統合する。流れた本文＝最終結果の本文になる。
+  private parseStreamResult(rawText: string): AnalysisResponse {
+    const fence = rawText.indexOf('```');
+    const narrative = (fence === -1 ? rawText : rawText.slice(0, fence)).trim();
+
+    let meta: Partial<AnalysisResponse> = {};
+    try {
+      meta = this.parseResponse(rawText) as Partial<AnalysisResponse>;
+    } catch {
+      // JSONが取れなくても本文だけは活かす
+      meta = {};
+    }
+
+    const emotional = meta.emotionalAnalysis as AnalysisResponse['emotionalAnalysis'] | undefined;
+    return {
+      psychologicalInterpretation: narrative || meta.psychologicalInterpretation || '',
+      symbols: (meta.symbols as AnalysisResponse['symbols']) ?? [],
+      themes: meta.themes ?? [],
+      emotionalAnalysis: emotional ?? { primary: '', secondary: [], intensity: 5 },
+      underlyingMeanings: meta.underlyingMeanings ?? [],
+      insights: meta.insights ?? [],
+    };
   }
 
   private parseResponse(response: string): AnalysisResponse {
