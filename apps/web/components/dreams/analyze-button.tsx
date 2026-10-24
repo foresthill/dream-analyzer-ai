@@ -27,6 +27,7 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS.anthropic[0].value);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [streamText, setStreamText] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -58,15 +59,19 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
 
     setIsAnalyzing(true);
     setError(null);
+    setNotice(null);
     setStreamText('');
 
     try {
-      const { ok, error: streamErr } = await streamAnalysis(
+      const { ok, error: streamErr, partial } = await streamAnalysis(
         { dreamId, provider: selectedProvider, model: selectedModel },
         (text) => setStreamText(text)
       );
       if (!ok) {
         throw new Error(streamErr || '分析に失敗しました（原因不明）');
+      }
+      if (partial) {
+        setNotice('時間制限のため、簡易版（本文中心）で保存しました。全項目が必要なら、速いモデルで再分析してください。');
       }
       // 保存済みの構造化分析を表示するためにページを更新
       router.refresh();
@@ -197,6 +202,12 @@ export function AnalyzeButton({ dreamId, existingAnalyses }: AnalyzeButtonProps)
       {error && (
         <div className="whitespace-pre-line rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           <strong>エラー:</strong> {error}
+        </div>
+      )}
+
+      {notice && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+          {notice}
         </div>
       )}
 
