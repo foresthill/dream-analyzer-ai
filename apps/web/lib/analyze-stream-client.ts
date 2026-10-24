@@ -9,6 +9,7 @@ export function stripJson(text: string): string {
 export interface StreamAnalysisResult {
   ok: boolean;
   error?: string;
+  partial?: boolean; // 時間制限により簡易保存された場合 true
 }
 
 /**
@@ -39,6 +40,7 @@ export async function streamAnalysis(
   let streamError: string | undefined;
   let finished = false;
   let completed = false; // サーバーが 'done'（保存完了）を返したか
+  let partial = false;
 
   while (!finished) {
     const { value, done } = await reader.read();
@@ -58,7 +60,7 @@ export async function streamAnalysis(
         .join('\n');
       if (!dataPayload) continue;
 
-      let msg: { type?: string; text?: string; error?: string; detail?: string };
+      let msg: { type?: string; text?: string; error?: string; detail?: string; partial?: boolean };
       try {
         msg = JSON.parse(dataPayload);
       } catch {
@@ -70,6 +72,7 @@ export async function streamAnalysis(
         onText(stripJson(full));
       } else if (msg.type === 'done') {
         completed = true;
+        partial = msg.partial === true;
         finished = true;
       } else if (msg.type === 'error') {
         streamError = msg.detail ? `${msg.error}\n詳細: ${msg.detail}` : (msg.error ?? '分析に失敗しました');
@@ -89,5 +92,5 @@ export async function streamAnalysis(
         '応答が最後まで完了しませんでした（モデルが遅く、サーバーの時間制限で打ち切られた可能性があります）。もう一度試すか、設定で速いモデル（例: Claude Sonnet / Haiku、Gemini Flash 等）に切り替えてください。',
     };
   }
-  return { ok: true };
+  return { ok: true, partial };
 }
