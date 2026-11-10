@@ -82,7 +82,8 @@ export class DreamAnalyzer {
   // 最後に構造化JSONまで含めた全文をパースして結果を返す。
   async streamRun(
     request: AnalysisRequest,
-    onText: (delta: string) => void
+    onText: (delta: string) => void,
+    signal?: AbortSignal
   ): Promise<AnalysisRunResult> {
     const prompt = this.buildPrompt(request, { proseFirst: true });
     const startedAt = Date.now();
@@ -107,7 +108,8 @@ export class DreamAnalyzer {
         };
         if (disableThinking) params.thinking = { type: 'disabled' };
         const stream = client.messages.stream(
-          params as unknown as Parameters<typeof client.messages.stream>[0]
+          params as unknown as Parameters<typeof client.messages.stream>[0],
+          { signal }
         );
         stream.on('text', (delta: string) => {
           rawText += delta;
@@ -139,7 +141,7 @@ export class DreamAnalyzer {
       }
     } else {
       // OpenRouter も逐次ストリーミング（SSE）で配信する
-      const res = await this.streamOpenRouter(prompt, onText);
+      const res = await this.streamOpenRouter(prompt, onText, signal);
       rawText = res.rawText;
       usage = res.usage;
     }
@@ -255,11 +257,13 @@ export class DreamAnalyzer {
   // reasoning 非対応モデル等で最初のリクエストが失敗した場合は、reasoning を外して再試行する。
   private async streamOpenRouter(
     prompt: string,
-    onText: (delta: string) => void
+    onText: (delta: string) => void,
+    signal?: AbortSignal
   ): Promise<{ rawText: string; usage: TokenUsage }> {
     const doFetch = (disableReasoning: boolean) =>
       fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
+        signal,
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -480,7 +484,8 @@ ${outputSection}`;
   // ストリーミング（proseFirst）用のパース。
   // 本文（コードフェンスより前のテキスト）を psychologicalInterpretation とし、
   // JSON部はメタ情報として統合する。流れた本文＝最終結果の本文になる。
-  private parseStreamResult(rawText: string): AnalysisResponse {
+  // 時間切れ時に「その時点までのテキスト」から部分的な結果を組み立てる用途でも使う（public）。
+  parseStreamResult(rawText: string): AnalysisResponse {
     const fence = rawText.indexOf('```');
     const narrative = (fence === -1 ? rawText : rawText.slice(0, fence)).trim();
 

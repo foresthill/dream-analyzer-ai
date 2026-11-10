@@ -70,34 +70,72 @@ export async function POST(request: Request) {
       controller.enqueue(encoder.encode(`: ${' '.repeat(2048)}\n\n`));
       send({ type: 'start' });
 
-      try {
-        const run = await analyzer.streamRun(analysisRequest, (delta) => {
-          send({ type: 'delta', text: delta });
-        });
+      // サーバーレスの実行時間上限(60s)に対して余裕を持った時間予算。
+      // 超えそうなら生成を中断し、その時点までの本文で“部分保存”して正常終了する
+      // （流れた文章を取りこぼさない）。
+      const TIME_BUDGET_MS = 50_000;
+      let accumulated = '';
+      const onText = (delta: string) => {
+        accumulated += delta;
+        send({ type: 'delta', text: delta });
+      };
+      const abortController = new AbortController();
+      const budgetTimer = setTimeout(() => abortController.abort(), TIME_BUDGET_MS);
+      const promptForLog = () => analyzer['buildPrompt'](analysisRequest, { proseFirst: true });
 
-        // 動作ログ（成功）
+      try {
+        let result: Awaited<ReturnType<typeof analyzer.streamRun>>['result'] | undefined;
+        let usage: { promptTokens?: number; completionTokens?: number } = {};
+        let rawResponse = '';
+        let latencyMs: number | undefined;
+        let partial = false;
+        const startedAt = Date.now();
+
+        try {
+          const run = await analyzer.streamRun(analysisRequest, onText, abortController.signal);
+          result = run.result;
+          usage = run.usage;
+          rawResponse = run.rawResponse;
+          latencyMs = run.latencyMs;
+        } catch (e) {
+          // 時間切れ(abort)で、ある程度の本文が流れていれば“部分保存”する
+          if (abortController.signal.aborted && accumulated.trim().length > 20) {
+            result = analyzer.parseStreamResult(accumulated);
+            rawResponse = accumulated;
+            latencyMs = Date.now() - startedAt;
+            partial = true;
+          } else {
+            throw e;
+          }
+        }
+
+        if (!result) {
+          throw new Error('分析結果を生成できませんでした');
+        }
+
+        // 動作ログ（成功／部分保存）
         await recordAiLog({
           userId,
           operation: 'ANALYZE',
-          provider: run.provider,
-          model: run.model,
-          prompt: run.prompt,
-          response: run.rawResponse,
+          provider,
+          model: analyzer['model'],
+          prompt: promptForLog(),
+          response: rawResponse,
           status: 'SUCCESS',
-          promptTokens: run.usage.promptTokens,
-          completionTokens: run.usage.completionTokens,
-          latencyMs: run.latencyMs,
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          latencyMs,
           dreamId: dream.id,
         });
 
         const analysis = await persistAnalysis({
           dreamId: dream.id,
           provider,
-          model: run.model,
-          result: run.result,
+          model: analyzer['model'],
+          result,
         });
 
-        send({ type: 'done', analysisId: analysis.id });
+        send({ type: 'done', analysisId: analysis.id, partial });
       } catch (aiError) {
         const detail = aiError instanceof Error ? aiError.message : String(aiError);
         // 動作ログ（エラー）
@@ -106,7 +144,7 @@ export async function POST(request: Request) {
           operation: 'ANALYZE',
           provider,
           model: analyzer['model'],
-          prompt: analyzer['buildPrompt'](analysisRequest, { proseFirst: true }),
+          prompt: promptForLog(),
           status: 'ERROR',
           errorMessage: detail,
           dreamId: dream.id,
@@ -117,6 +155,7 @@ export async function POST(request: Request) {
           detail,
         });
       } finally {
+        clearTimeout(budgetTimer);
         closed = true;
         controller.close();
       }
