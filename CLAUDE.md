@@ -23,6 +23,12 @@ npx prisma migrate dev --name <migration_name>
 - 夢・分析・ログなどユーザーデータを取得するクエリは、原則 `userId`（必要に応じて `dreamerId`）で必ず絞る。
 - RAG/過去参照のクエリも `userId` を含めること（dreamerId だけに頼らない）。
 
+### 3. ノウハウ発信（Obsidian Digital Garden）
+- このプロジェクトの知見は `garden/` に Obsidian 用ノートとして蓄積し発信する。
+- 書き方・フォルダ（成長段階）・文体・同期/公開手順は **`docs/garden-authoring.md`** に従う（唯一の基準）。
+- 新ノートはテンプレ `docs/garden-note-template.md` から作り、`node scripts/garden-check.mjs` で検証してからコミット。
+- `garden/` だけがボールトへ同期される内容。テンプレ/ガイド/スクリプトは `garden/` の外に置く。
+
 ## プロジェクト構成（モノレポ / npm workspaces + Turbo）
 - `apps/web` — Next.js 16 (App Router) + Prisma(PostgreSQL) + NextAuth v5。本体。
 - `apps/mobile` — Expo（未実装中心）。
