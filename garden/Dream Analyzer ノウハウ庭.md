@@ -1,8 +1,7 @@
 ---
 dg-publish: true
-dg-home: true
 title: Dream Analyzer ノウハウ庭
-tags: [moc, home]
+tags: [moc]
 ---
 
 # 🌙 Dream Analyzer ノウハウ庭
