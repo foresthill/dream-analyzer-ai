@@ -22,7 +22,23 @@ export function AnalysisLoading() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border-2 border-primary/20 bg-gradient-to-b from-primary/5 to-background px-6 py-12">
+    <div
+      className="relative isolate flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-primary/20 px-6 py-12"
+      style={{
+        background:
+          'radial-gradient(90% 120% at 50% -20%, rgba(167,139,250,.22), transparent 60%),' +
+          'linear-gradient(to bottom, rgba(99,102,241,.06), var(--color-background))',
+      }}
+    >
+      {/* ゆらめくオーロラの光 */}
+      <div
+        className="dream-aurora pointer-events-none absolute -inset-x-6 -top-16 -z-10 h-40 opacity-40 blur-3xl"
+        style={{
+          background:
+            'radial-gradient(40% 60% at 30% 50%, #7c5cff, transparent 70%),' +
+            'radial-gradient(45% 55% at 70% 50%, #c878f0, transparent 70%)',
+        }}
+      />
       {/* Animated orbs */}
       <div className="relative mb-8 h-24 w-24">
         {/* Outer ring */}

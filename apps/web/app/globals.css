@@ -59,6 +59,33 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: system-ui, sans-serif;
+    font-family: 'Zen Kaku Gothic New', system-ui, sans-serif;
+    line-height: 1.7;
   }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Zen Maru Gothic', 'Zen Kaku Gothic New', system-ui, sans-serif;
+  }
+}
+
+/* ===== 夢っぽい装飾のアニメーション ===== */
+@keyframes dream-drift {
+  0%   { transform: translate3d(-4%, 0, 0) scale(1); }
+  100% { transform: translate3d(6%, 3%, 0) scale(1.12); }
+}
+@keyframes dream-twinkle {
+  0%, 100% { opacity: .25; }
+  50%      { opacity: 1; }
+}
+@keyframes dream-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+.dream-aurora { animation: dream-drift 16s ease-in-out infinite alternate; }
+.dream-star   { animation: dream-twinkle 3.5s ease-in-out infinite; }
+.dream-moon   { animation: dream-float 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dream-aurora, .dream-star, .dream-moon { animation: none !important; }
 }
