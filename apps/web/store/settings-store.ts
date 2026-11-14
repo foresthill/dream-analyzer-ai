@@ -85,16 +85,17 @@ export const useSettingsStore = create<SettingsStore>()(
 );
 
 // Available models for each provider（静的フォールバック。実際の一覧は /api/models で動的取得）
+// 速い/バランス型を先頭に（= 既定に選ばれる）。重いモデルは末尾＋注意ラベル。
 export const AVAILABLE_MODELS = {
   anthropic: [
-    { value: 'claude-opus-5', label: 'Claude Opus 5（最高品質）' },
-    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5（バランス）' },
-    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5（高速・低コスト）' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5（推奨・速い）' },
+    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5（最速・低コスト）' },
+    { value: 'claude-opus-5', label: 'Claude Opus 5（高品質・遅め／途中で切れることあり）' },
   ],
   openrouter: [
-    { value: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5' },
+    { value: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5（推奨・速い）' },
+    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash（速い）' },
     { value: 'openai/gpt-4o', label: 'GPT-4o' },
-    { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { value: 'mistralai/mistral-large', label: 'Mistral Large' },
   ],
 } as const;

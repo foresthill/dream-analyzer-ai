@@ -99,6 +99,10 @@ export default function SettingsPage() {
               <p className="mt-1 text-xs text-muted-foreground">
                 現在選択中: <span className="font-mono">{modelConfig.model}</span>
               </p>
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                ⚠️ 速いモデル（Sonnet 系・Gemini Flash など）を推奨します。Opus など重いモデルは、
+                分析がサーバーの時間制限（約60秒）に収まらず途中で切れることがあります。
+              </p>
             </div>
 
             <div className="rounded-md bg-secondary p-3">

@@ -16,7 +16,7 @@ model User {
 
   // AI設定（ユーザーごとに保存）
   preferredProvider String @default("anthropic")
-  preferredModel    String @default("claude-sonnet-4-20250514")
+  preferredModel    String @default("claude-sonnet-5")
 
   accounts  Account[]
   sessions  Session[]
