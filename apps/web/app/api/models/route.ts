@@ -21,6 +21,9 @@ const ANTHROPIC_MODELS: ModelOption[] = [
 // 速い/バランス型を上に、重い・推論系を下に並べる（上にあるほど既定に選ばれやすい）。
 const OPENROUTER_PREFERRED = [
   // 速い/バランス型（分析が時間内に完走しやすい）
+  // ※最新Claude(5系)のスラッグ。OpenRouterに在れば自動で表示、無ければフィルタされる。
+  'anthropic/claude-sonnet-5',
+  'anthropic/claude-haiku-4.5',
   'anthropic/claude-sonnet-4.5',
   'anthropic/claude-sonnet-4',
   'anthropic/claude-3.5-haiku',
@@ -36,6 +39,7 @@ const OPENROUTER_PREFERRED = [
   'mistralai/mistral-large',
   'google/gemini-2.5-pro',
   // 重め・推論系（時間がかかり、分析が途中で切れやすい）
+  'anthropic/claude-opus-5',
   'anthropic/claude-opus-4.1',
   'anthropic/claude-3.7-sonnet',
   'openai/gpt-5',
