@@ -17,6 +17,7 @@ export default function NewDreamPage() {
   const [streamText, setStreamText] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [savedDreamId, setSavedDreamId] = useState<string | null>(null);
+  const [isPartial, setIsPartial] = useState(false);
   const { modelConfig, fetchSettings } = useSettingsStore();
 
   // ページ読み込み時にサーバーから設定を取得
@@ -57,9 +58,22 @@ export default function NewDreamPage() {
         // 分析が最後まで完了しなかった場合は、黙って遷移せずに知らせる。
         // 夢そのものは保存済みなので、詳細ページから分析だけやり直せる。
         if (!result.ok) {
+          setIsPartial(false);
           setErrorMessage(
             result.error ||
               '分析が時間内に完了しませんでした。朝など久しぶりの最初の1回目は時間がかかることがあります。'
+          );
+          setPhase('error');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // 時間切れで途中保存された場合。本文は途中まで・メタ情報（シンボル等）は
+        // 空のことが多いので、黙って遷移せず「途中保存」であることを知らせる。
+        if (result.partial) {
+          setIsPartial(true);
+          setErrorMessage(
+            '時間内に生成が終わらず、途中までの内容で保存しました（シンボルやテーマなどが欠けていることがあります）。より速いモデル（例: Sonnet系）でやり直すと、最後まで入ることが多いです。'
           );
           setPhase('error');
           setIsSubmitting(false);
@@ -91,7 +105,9 @@ export default function NewDreamPage() {
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
           <h1 className="text-3xl font-bold">夢を記録しました</h1>
-          <p className="text-muted-foreground">分析だけが完了しませんでした。</p>
+          <p className="text-muted-foreground">
+            {isPartial ? '分析は途中までの内容で保存されています。' : '分析だけが完了しませんでした。'}
+          </p>
         </div>
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
           <p className="font-medium">夢は保存されています（消えていません）。</p>
@@ -110,7 +126,7 @@ export default function NewDreamPage() {
               }}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
-              記録した夢を開いて分析をやり直す
+              {isPartial ? '途中までの結果を見る（やり直しも可）' : '記録した夢を開いて分析をやり直す'}
             </button>
           )}
           <button
