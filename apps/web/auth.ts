@@ -15,10 +15,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: '/login',
   },
+  // JWT セッション方式。ログイン判定を Cookie 内の JWT だけで行い、毎回の DB 問い合わせを無くす。
+  // これにより Neon(サーバーレスDB) のコールドスタートでログイン状態が崩れる問題を防ぐ。
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30日
+  },
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    // サインイン時だけ user が渡ってくる。ユーザーIDをトークンに載せ、以降はトークンを使い回す。
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    // セッションにはトークンから userId を復元（DB を見ない）。
+    session({ session, token }) {
+      // token.id は jwt コールバックで載せた userId。無ければ既定の sub を使う。
+      const userId = (token.id as string | undefined) ?? token.sub;
+      if (session.user && userId) {
+        session.user.id = userId;
       }
       return session;
     },
