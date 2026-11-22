@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { AnalysisRequest, AnalysisResponse, SymbolEntry } from '@dream-analyzer/shared-types';
+import type { AnalysisRequest, AnalysisResponse, SymbolEntry, DreamMood } from '@dream-analyzer/shared-types';
 import { SYMBOL_DATABASE } from '../symbols/symbol-database';
+import { getMoodLabel } from './mood-analyzer';
 
 export type AIProvider = 'anthropic' | 'openrouter';
 
@@ -385,6 +386,12 @@ ${lines.join('\n')}
     const proseFirst = opts?.proseFirst ?? false;
     const hasHistory = request.userContext?.recentDreams && request.userContext.recentDreams.length > 0;
 
+    // 気分は既定が「中立(neutral)」で、ほとんどのユーザーが入力しない“実質未入力”の値。
+    // そのままAIに渡すと「入力していないのに気分は中立」と矛盾した言及が出るため、
+    // 中立のときは渡さない。ユーザーが意図的に中立以外を選んだ時だけ手がかりにする。
+    const mood = request.dream.mood as DreamMood;
+    const moodLine = mood && mood !== 'neutral' ? `気分: ${getMoodLabel(mood)}\n` : '';
+
     let historySection = '';
     if (hasHistory) {
       historySection = `
@@ -467,8 +474,7 @@ JSONの値は必ず日本語で、intensity は1〜10の整数にしてくださ
 【夢の内容】
 タイトル: ${request.dream.title}
 詳細: ${request.dream.content}
-気分: ${request.dream.mood}
-${request.dream.emotions ? `感情: ${request.dream.emotions.join(', ')}` : ''}
+${moodLine}${request.dream.emotions ? `感情: ${request.dream.emotions.join(', ')}` : ''}
 ${request.dream.setting ? `場所: ${request.dream.setting}` : ''}
 ${request.dream.characters ? `登場人物: ${request.dream.characters.join(', ')}` : ''}
 ${historySection}${symbolReference}
