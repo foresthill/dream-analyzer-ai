@@ -71,14 +71,14 @@ export default async function DreamPage({ params }: DreamPageProps) {
             {dream.analyses.map((analysis, index) => (
               <section
                 key={analysis.id}
-                className="rounded-lg border-2 border-border bg-card p-6 shadow-sm"
+                className="rounded-lg border-2 border-border bg-card p-4 shadow-sm sm:p-6"
               >
-                <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+                <div className="mb-4 flex flex-col gap-1 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                   <h3 className="text-lg font-semibold">
                     分析 #{dream.analyses.length - index}
                   </h3>
-                  <div className="text-right">
-                    <div className="text-sm font-mono text-muted-foreground">
+                  <div className="min-w-0 sm:text-right">
+                    <div className="break-all font-mono text-xs text-muted-foreground sm:text-sm">
                       {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
                       {analysis.model}
                     </div>
@@ -100,7 +100,7 @@ export default async function DreamPage({ params }: DreamPageProps) {
       )}
 
       {/* AI分析コントロール（結果の下。別モデルで再分析・比較） */}
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
         <h2 className="mb-4 text-xl font-semibold">AI分析</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           異なるAIモデルで分析して、結果を比較できます。
@@ -114,7 +114,7 @@ export default async function DreamPage({ params }: DreamPageProps) {
           <span>入力した夢の内容を見る</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-180"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
-        <div className="border-t border-border p-2">
+        <div className="border-t border-border p-3 sm:p-4">
           <DreamDetail dream={dream} hideHeader />
         </div>
       </details>

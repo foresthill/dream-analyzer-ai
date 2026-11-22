@@ -41,30 +41,16 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
   `.replace(/\s+/g, ' ').trim();
 
   return (
-    <div className="space-y-6">
-      {/* Model information */}
-      {(analysis.provider || analysis.model) && (
-        <div className="rounded-lg border border-border bg-secondary p-4">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium">使用モデル:</span>
-            <span className="font-mono text-muted-foreground">
-              {analysis.provider === 'openrouter' ? 'OpenRouter / ' : ''}
-              {analysis.model || 'Unknown'}
-            </span>
-            <span className="ml-auto text-xs text-muted-foreground">
-              {new Date(analysis.analyzedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
-            </span>
-          </div>
-        </div>
-      )}
+    <div className="space-y-4 sm:space-y-6">
+      {/* モデル情報はセクション見出し側で表示するため、ここでは重複表示しない */}
 
       {/* 全体読み上げボタン */}
-      <div className="flex items-center justify-between rounded-lg border border-border bg-primary/5 p-4">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-primary/5 p-3 sm:p-4">
         <span className="text-sm font-medium">解析結果を音声で聴く</span>
         <TextToSpeechButton text={fullText} size="md" showLabel={true} />
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">心理学的解釈</h2>
           <TextToSpeechButton
@@ -76,7 +62,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
         <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{analysis.psychologicalInterpretation}</p>
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <h2 className="mb-4 text-xl font-semibold">シンボル分析</h2>
         <div className="space-y-3">
           {symbols.map((symbol, index) => (
@@ -90,7 +76,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <h2 className="mb-4 text-xl font-semibold">テーマ</h2>
         <div className="flex flex-wrap gap-2">
           {analysis.themes.map((theme) => (
@@ -104,7 +90,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <h2 className="mb-4 text-xl font-semibold">感情分析</h2>
         <div className="space-y-2">
           <p>
@@ -130,7 +116,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">潜在的な意味</h2>
           <TextToSpeechButton
@@ -146,7 +132,7 @@ export function AnalysisResult({ analysis }: AnalysisResultProps) {
         </ul>
       </div>
 
-      <div className="rounded-lg border border-border bg-background p-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">洞察・アドバイス</h2>
           <TextToSpeechButton
