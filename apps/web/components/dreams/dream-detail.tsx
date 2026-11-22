@@ -22,7 +22,7 @@ interface DreamDetailProps {
 
 export function DreamDetail({ dream, hideHeader = false }: DreamDetailProps) {
   return (
-    <div className="rounded-lg border border-border bg-background p-6">
+    <div className="rounded-lg border border-border bg-background p-4 sm:p-6">
       {!hideHeader && (
         <div className="mb-4 flex items-start justify-between">
           <div>
