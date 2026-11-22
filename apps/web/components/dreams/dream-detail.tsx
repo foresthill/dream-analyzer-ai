@@ -16,20 +16,24 @@ interface DreamDetailProps {
     characters: string[];
     emotions: string[];
   };
+  // ページ上部に別途タイトルを出す場合など、内部の見出し（タイトル・日付・気分）を省略する
+  hideHeader?: boolean;
 }
 
-export function DreamDetail({ dream }: DreamDetailProps) {
+export function DreamDetail({ dream, hideHeader = false }: DreamDetailProps) {
   return (
     <div className="rounded-lg border border-border bg-background p-6">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{dream.title}</h1>
-          <p className="text-sm text-muted-foreground">{formatDate(dream.date)}</p>
+      {!hideHeader && (
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{dream.title}</h1>
+            <p className="text-sm text-muted-foreground">{formatDate(dream.date)}</p>
+          </div>
+          <span className="rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground">
+            {getMoodLabel(dream.mood.toLowerCase() as DreamMood)}
+          </span>
         </div>
-        <span className="rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground">
-          {getMoodLabel(dream.mood.toLowerCase() as DreamMood)}
-        </span>
-      </div>
+      )}
 
       <p className="mb-6 whitespace-pre-wrap">{dream.content}</p>
 
