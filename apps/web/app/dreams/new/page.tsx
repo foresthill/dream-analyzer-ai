@@ -8,7 +8,7 @@ import { useSettingsStore } from '@/store/settings-store';
 import type { CreateDreamInput } from '@dream-analyzer/shared-types';
 import { streamAnalysis } from '@/lib/analyze-stream-client';
 
-type Phase = 'form' | 'analyzing' | 'finishing' | 'error';
+type Phase = 'form' | 'analyzing' | 'finishing' | 'done' | 'error';
 
 export default function NewDreamPage() {
   const router = useRouter();
@@ -79,10 +79,15 @@ export default function NewDreamPage() {
           setIsSubmitting(false);
           return;
         }
+        // 分析成功。自動では遷移せず、リアルタイム表示をそのまま“完成版”として残す。
+        // 読んでいる途中で勝手にページが切り替わって体験が途切れるのを防ぐ。
+        // 続きは本人の意思で「詳しく見る／ホームへ」。
+        setPhase('done');
+        setIsSubmitting(false);
+        return;
       }
 
-      // 「完了→遷移中」の表示にしたまま詳細ページへ。
-      // ここでフォーム表示に戻すと一瞬フォームがちらつくため、phase は戻さない。
+      // 「保存のみ」など分析しない場合はそのまま詳細ページへ。
       setPhase('finishing');
       router.push(`/dreams/${data.id}`);
     } catch (error) {
@@ -135,6 +140,43 @@ export default function NewDreamPage() {
             className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             夢の一覧へ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 分析完了。自動遷移せず、読み終えてから本人の意思で次へ進める。
+  if (phase === 'done') {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">分析が完了しました 🌙</h1>
+          <p className="text-muted-foreground">ゆっくり読んでください。続きは下のボタンから。</p>
+        </div>
+        <div className="rounded-lg border border-border bg-background p-4">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">分析結果</div>
+          <div className="whitespace-pre-wrap text-sm leading-relaxed">{streamText}</div>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {savedDreamId && (
+            <button
+              type="button"
+              onClick={() => {
+                setPhase('finishing');
+                router.push(`/dreams/${savedDreamId}`);
+              }}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              詳しく見る（シンボル・テーマ・チャット）
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            ホームへ
           </button>
         </div>
       </div>
